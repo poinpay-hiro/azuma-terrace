@@ -233,6 +233,15 @@ section.block { padding: 26px 0; }
 .info dt { color: var(--green-dark); font-weight: 700; }
 .info dd { margin: 0; }
 
+/* ---- 活動の手引き ギャラリー ---- */
+.guide-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 8px 0 4px; }
+.guide-item { margin: 0; background: #fff; border: 1px solid #efe7d7; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(90,80,40,.06); }
+.guide-item a { display: block; }
+.guide-item img { width: 100%; height: auto; display: block; background: var(--beige); }
+.guide-item figcaption { font-size: .82rem; padding: 7px 10px; color: var(--ink); text-align: center; }
+.guide-item.wide { grid-column: 1 / -1; }
+@media (min-width: 600px) { .guide-gallery { grid-template-columns: repeat(4, 1fr); } }
+
 /* ---- フッター ---- */
 .site-footer {
   background: var(--green);

@@ -42,6 +42,35 @@ function lineCta() {
   return `<div class="cta"><a class="line-btn" href="${esc(site.lineUrl)}" target="_blank" rel="noopener">公式LINEでつながる</a></div>`;
 }
 
+// 「活動の手引き」ギャラリー（assets/guidelines/ の分割画像）
+const GUIDELINES = [
+  { file: "01.jpg", caption: "表紙", wide: false },
+  { file: "02.jpg", caption: "はじめに", wide: false },
+  { file: "03.jpg", caption: "ビジョン", wide: false },
+  { file: "04.jpg", caption: "どんぐりのエピソード", wide: false },
+  { file: "05.jpg", caption: "メロンパンのエピソード", wide: false },
+  { file: "06.jpg", caption: "名前に込めた想い", wide: false },
+  { file: "07.jpg", caption: "ロゴマークの由来", wide: false },
+  { file: "08.jpg", caption: "目指す姿・行動指針", wide: false },
+  { file: "09.jpg", caption: "まちのイラストマップ", wide: true },
+];
+
+function guidelineGallery() {
+  const items = GUIDELINES.map((g) => {
+    const w = g.wide ? 2104 : 1052;
+    const h = 1488;
+    return `<figure class="guide-item${g.wide ? " wide" : ""}">
+    <a href="assets/guidelines/${g.file}" target="_blank" rel="noopener">
+      <img src="assets/guidelines/${g.file}" width="${w}" height="${h}" loading="lazy" alt="活動の手引き：${esc(g.caption)}">
+    </a>
+    <figcaption>${esc(g.caption)}</figcaption>
+  </figure>`;
+  }).join("\n  ");
+  return `<div class="guide-gallery">
+  ${items}
+</div>`;
+}
+
 function pickFeaturedEvents(all) {
   const active = all.filter((e) => e.status === "upcoming" || e.status === "ongoing");
   if (active.length) return active;
@@ -208,6 +237,10 @@ function pageAbout() {
 
   <div class="section-head" style="margin-top:16px"><h2 style="font-size:1.05rem">名前の由来</h2></div>
   <p>${esc(site.origin)}</p>
+
+  <div class="section-head" style="margin-top:20px"><h2 style="font-size:1.05rem">活動の手引き</h2></div>
+  <p class="lead">あづまテラスの想いをまとめた「活動の手引き」です。各ページをタップすると拡大表示します。</p>
+  ${guidelineGallery()}
 
   <div class="section-head" style="margin-top:16px"><h2 style="font-size:1.05rem">基本情報</h2></div>
   <div class="card info">
