@@ -1,0 +1,25 @@
+{
+  "name": "東あづま本通り会",
+  "alternateName": "あづまテラス",
+  "alternateNameEn": "azuma terrace",
+  "postalCode": "131-0043",
+  "addressRegion": "東京都",
+  "addressLocality": "墨田区",
+  "streetAddress": "立花1丁目・2丁目",
+  "addressFull": "〒131-0043 東京都墨田区立花1丁目・2丁目",
+  "access": "東武亀戸線「東あずま駅」から徒歩約1分",
+  "nearestStation": "東あずま駅（東武亀戸線）",
+  "vision": "「心地いい」をともに創る",
+  "guidelines": [
+    "あるいてみよう",
+    "のぞいてみよう",
+    "きれいにしよう",
+    "ファンになろう"
+  ],
+  "lineUrl": "https://lin.ee/uHD48Yj",
+  "origin": "名称は日本神話・吾嬬神社（弟橘媛）に由来します。「吾嬬（あづま）」の「づ」がロゴのモチーフになっています。近隣には吾嬬神社、香梅園（梅約300本）があります。",
+  "nearby": [
+    { "name": "吾嬬神社", "note": "名称の由来となった神社（弟橘媛をまつる）" },
+    { "name": "香梅園", "note": "梅が約300本植えられた梅の名所" }
+  ]
+}

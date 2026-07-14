@@ -1,0 +1,15 @@
+# build output
+/dist/
+
+# dependencies (none required, but ignore if added later)
+node_modules/
+
+# OS / editor
+.DS_Store
+*.log
+.claude/
+
+# never commit design source PDFs or secrets
+*.pdf
+.env
+.env.*
