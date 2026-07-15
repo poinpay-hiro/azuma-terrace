@@ -10,7 +10,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist");
 const DATA = path.join(ROOT, "data");
 
-const REQUIRED_PAGES = ["index", "events", "shops", "medical", "access", "about"];
+const REQUIRED_PAGES = ["index", "events", "shops", "medical", "access", "guidelines", "about"];
 const IMG_EXT = /\.(jpe?g|png|svg|webp|gif|avif)$/i;
 const SIZE_WARN = 1024 * 1024; // 1MB
 const results = [];
@@ -38,7 +38,7 @@ function jsonLdBlocks(html) {
 // ============ 1. 6ページ存在 ============
 {
   const missing = REQUIRED_PAGES.filter((p) => !fs.existsSync(path.join(DIST, p + ".html")));
-  check("6ページ生成", missing.length === 0, missing.length ? `不足: ${missing.join(", ")}` : `${REQUIRED_PAGES.length}ページ存在`);
+  check("7ページ生成(guidelines含む)", missing.length === 0, missing.length ? `不足: ${missing.join(", ")}` : `${REQUIRED_PAGES.length}ページ存在`);
 }
 
 const distFiles = listFiles(DIST);
@@ -110,30 +110,31 @@ let allLd = []; // {page, obj}
     events.length === 0 ? "Event JSON-LDが0件" : problems.length ? problems.join(" / ") : `${events.length}件すべて必須項目あり`);
 }
 
+// git 追跡＋ステージング対象ファイル一覧（複数チェックで共用）
+function gitList(cmd) { try { return execSync(cmd, { cwd: ROOT }).toString().split("\n").filter(Boolean); } catch { return null; } }
+const gitTracked = gitList("git ls-files");
+const gitStaged = gitList("git diff --cached --name-only") || [];
+const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
+
 // ============ 6. 秘密・不要物の混入検知（dist / git対象）============
+// 注: assets/guidelines/**.png は「活動の手引き」画像として公開可（オーナー承認済み）→ 禁止対象から除外。
+//     *.pdf / .env / .claude / dist / node_modules の禁止は維持。
 {
   const bad = [];
   const isForbidden = (f) =>
     f.endsWith(".pdf") ||
-    /(^|\/)assets\/guidelines\/[^/]+\.png$/.test(f) ||
     /(^|\/)\.env(\.|$)/.test(f) ||
     f === ".env" ||
     /(^|\/)\.claude(\/|$)/.test(f);
+  // dist/・node_modules/ が git 追跡されていないこと（生成物・依存の混入禁止）
+  const isForbiddenInGit = (f) => isForbidden(f) || /^dist\//.test(f) || /(^|\/)node_modules\//.test(f);
 
-  // dist/ ツリー
-  for (const f of distFiles) if (isForbidden("dist/" + f) || f.endsWith(".pdf") || /assets\/guidelines\/.+\.png$/.test(f)) bad.push("dist/" + f);
-
+  // dist/ ツリー（PDF・秘密ファイルが焼き込まれていないか）
+  for (const f of distFiles) if (isForbidden(f)) bad.push("dist/" + f);
   // git 追跡ファイル + ステージング対象
-  let gitFiles = [];
-  try {
-    const tracked = execSync("git ls-files", { cwd: ROOT }).toString().split("\n").filter(Boolean);
-    let staged = [];
-    try { staged = execSync("git diff --cached --name-only", { cwd: ROOT }).toString().split("\n").filter(Boolean); } catch {}
-    gitFiles = [...new Set([...tracked, ...staged])];
-  } catch { /* git無しなら dist チェックのみ */ }
-  for (const f of gitFiles) if (isForbidden(f)) bad.push("git:" + f);
+  if (gitAll) for (const f of gitAll) if (isForbiddenInGit(f)) bad.push("git:" + f);
 
-  check("秘密/不要物の非混入(*.pdf, guidelines/*.png, .env, .claude)", bad.length === 0,
+  check("秘密/不要物の非混入(*.pdf, .env, .claude, dist, node_modules)", bad.length === 0,
     bad.length ? bad.slice(0, 8).join(" / ") : "混入なし");
 }
 
@@ -191,6 +192,29 @@ let allLd = []; // {page, obj}
   }
   check("JSON-LD @context妥当性", problems.length === 0,
     problems.length ? problems.slice(0, 6).join(" / ") : `${allLd.length}ブロックとも schema.org / @type有`);
+}
+
+// ============ 10. 活動の手引き画像：git追跡済み ＋ 1枚1MB以下 ============
+{
+  const dir = path.join(ROOT, "assets", "guidelines");
+  const problems = [];
+  let count = 0;
+  if (!fs.existsSync(dir)) {
+    problems.push("assets/guidelines/ が存在しない");
+  } else {
+    const trackedSet = gitTracked ? new Set(gitTracked) : null;
+    for (const f of fs.readdirSync(dir)) {
+      if (!IMG_EXT.test(f)) continue;
+      count++;
+      const rel = `assets/guidelines/${f}`;
+      const size = fs.statSync(path.join(dir, f)).size;
+      if (size > SIZE_WARN) problems.push(`${rel}: 1MB超 (${(size / 1024 / 1024).toFixed(2)}MB)`);
+      if (trackedSet && !trackedSet.has(rel)) problems.push(`${rel}: git未追跡`);
+    }
+    if (count === 0) problems.push("画像が0件");
+  }
+  check("手引き画像 git追跡済み＋1MB以下", problems.length === 0,
+    problems.length ? problems.slice(0, 8).join(" / ") : `${count}枚すべて追跡済み・1MB以下`);
 }
 
 // ============ 出力 ============

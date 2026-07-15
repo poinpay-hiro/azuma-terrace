@@ -150,6 +150,7 @@ function shoppingCenterJsonLd(site) {
       addressRegion: site.addressRegion,
       addressCountry: "JP",
     },
+    email: site.email,
     sameAs: [site.lineUrl],
   };
 }

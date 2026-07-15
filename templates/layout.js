@@ -7,6 +7,7 @@ const NAV = [
   { href: "shops.html", label: "店舗一覧" },
   { href: "medical.html", label: "医療・健康" },
   { href: "access.html", label: "アクセス" },
+  { href: "guidelines.html", label: "行動指針" },
   { href: "about.html", label: "商店街について" },
 ];
 
@@ -41,7 +42,7 @@ function footer(site) {
   <div class="container">
     <ul class="fnav">${fnav}</ul>
     <p><a class="line-btn" href="${esc(site.lineUrl)}" target="_blank" rel="noopener">公式LINEでつながる</a></p>
-    <p class="copyright">${esc(site.name)}（あづまテラス）／${esc(site.addressFull)}<br>お問い合わせは公式LINEへ。© ${esc(site.name)}</p>
+    <p class="copyright">${esc(site.name)}（あづまテラス）／${esc(site.addressFull)}<br>お問い合わせ：公式LINE または <a href="mailto:${esc(site.email)}">${esc(site.email)}</a><br>© ${esc(site.name)}</p>
   </div>
 </footer>`;
 }

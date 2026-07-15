@@ -42,31 +42,31 @@ function lineCta() {
   return `<div class="cta"><a class="line-btn" href="${esc(site.lineUrl)}" target="_blank" rel="noopener">公式LINEでつながる</a></div>`;
 }
 
-// 「活動の手引き」ギャラリー（assets/guidelines/ の分割画像）
+// 「活動の手引き」分割画像（assets/guidelines/）。alt は内容を表す日本語。
 const GUIDELINES = [
-  { file: "01.jpg", caption: "表紙", wide: false },
-  { file: "02.jpg", caption: "はじめに", wide: false },
-  { file: "03.jpg", caption: "ビジョン", wide: false },
-  { file: "04.jpg", caption: "どんぐりのエピソード", wide: false },
-  { file: "05.jpg", caption: "メロンパンのエピソード", wide: false },
-  { file: "06.jpg", caption: "名前に込めた想い", wide: false },
-  { file: "07.jpg", caption: "ロゴマークの由来", wide: false },
-  { file: "08.jpg", caption: "目指す姿・行動指針", wide: false },
-  { file: "09.jpg", caption: "まちのイラストマップ", wide: true },
+  { file: "01.jpg", caption: "表紙", alt: "活動の手引き 表紙「あづまテラス 活動の手引」とロゴ", wide: false },
+  { file: "02.jpg", caption: "はじめに", alt: "はじめに：「東あづま本通り」は「あづまテラス」へ！", wide: false },
+  { file: "03.jpg", caption: "ビジョン", alt: "ビジョン「心地いい」をともに創る", wide: false },
+  { file: "04.jpg", caption: "どんぐりのエピソード", alt: "手書きエピソード：ベンチで子どもからどんぐりを手渡された朝の話", wide: false },
+  { file: "05.jpg", caption: "メロンパンのエピソード", alt: "手書きエピソード：パン屋でのメロンパンを通じたささやかなつながり", wide: false },
+  { file: "06.jpg", caption: "名前に込めた想い", alt: "名前に込めた想い：みんなが集い心地よさを感じられる空間へ", wide: false },
+  { file: "07.jpg", caption: "ロゴマークの由来", alt: "ロゴマークの由来：「づ」をモチーフに、御神木クスノキの緑をイメージ", wide: false },
+  { file: "08.jpg", caption: "目指す姿・行動指針", alt: "目指す姿と行動指針（あるいてみよう・のぞいてみよう・きれいにしよう・ファンになろう）", wide: false },
+  { file: "09.jpg", caption: "まちのイラストマップ", alt: "あづまテラス周辺のイラストマップ（東あずま駅〜小村井駅、吾嬬神社・香梅園）", wide: true },
 ];
 
-function guidelineGallery() {
+// 縦並びギャラリー（クリックで原寸表示）
+function guidelineStack() {
   const items = GUIDELINES.map((g) => {
     const w = g.wide ? 2104 : 1052;
-    const h = 1488;
-    return `<figure class="guide-item${g.wide ? " wide" : ""}">
-    <a href="assets/guidelines/${g.file}" target="_blank" rel="noopener">
-      <img src="assets/guidelines/${g.file}" width="${w}" height="${h}" loading="lazy" alt="活動の手引き：${esc(g.caption)}">
+    return `<figure class="guide-figure${g.wide ? " wide" : ""}">
+    <a href="assets/guidelines/${g.file}" target="_blank" rel="noopener" title="原寸で開く">
+      <img src="assets/guidelines/${g.file}" width="${w}" height="1488" loading="lazy" alt="${esc(g.alt)}">
     </a>
     <figcaption>${esc(g.caption)}</figcaption>
   </figure>`;
   }).join("\n  ");
-  return `<div class="guide-gallery">
+  return `<div class="guide-stack">
   ${items}
 </div>`;
 }
@@ -205,6 +205,7 @@ function pageAccess() {
   <div class="card info">
     <dl>
       <dt>所在地</dt><dd>${esc(site.addressFull)}</dd>
+      <dt>エリア</dt><dd>商店街のエリアは${esc(site.area)}に広がります</dd>
       <dt>最寄駅</dt><dd>${esc(site.access)}</dd>
     </dl>
   </div>
@@ -234,13 +235,10 @@ function pageAbout() {
 
   <div class="section-head" style="margin-top:16px"><h2 style="font-size:1.05rem">行動指針</h2></div>
   <ul class="guidelines">${site.guidelines.map((g) => `<li>${esc(g)}</li>`).join("")}</ul>
+  <p><a href="guidelines.html">私たちの行動指針（活動の手引き）を見る →</a></p>
 
   <div class="section-head" style="margin-top:16px"><h2 style="font-size:1.05rem">名前の由来</h2></div>
   <p>${esc(site.origin)}</p>
-
-  <div class="section-head" style="margin-top:20px"><h2 style="font-size:1.05rem">活動の手引き</h2></div>
-  <p class="lead">あづまテラスの想いをまとめた「活動の手引き」です。各ページをタップすると拡大表示します。</p>
-  ${guidelineGallery()}
 
   <div class="section-head" style="margin-top:16px"><h2 style="font-size:1.05rem">基本情報</h2></div>
   <div class="card info">
@@ -253,11 +251,42 @@ function pageAbout() {
   </div>
 
   <div class="section-head" style="margin-top:16px"><h2 style="font-size:1.05rem">お問い合わせ</h2></div>
-  <p>お問い合わせは公式LINEよりお気軽にどうぞ。</p>
+  <p>お問い合わせは公式LINE、またはメール <a href="mailto:${esc(site.email)}">${esc(site.email)}</a> よりお気軽にどうぞ。</p>
   ${lineCta()}
 </div></section>
 `;
-  return layout({ title: "商店街について", description: `${site.name}（あづまテラス）について。ビジョン「${site.vision}」、行動指針、名前の由来、公式LINE。`, active: "about.html", jsonld: [SC], content }, site);
+  return layout({ title: "商店街について", description: `${site.name}（あづまテラス）について。ビジョン「${site.vision}」、行動指針、名前の由来、公式LINE・メール。`, active: "about.html", jsonld: [SC], content }, site);
+}
+
+function pageGuidelines() {
+  const content = `
+<section class="block"><div class="container">
+  <div class="section-head"><h2>私たちの行動指針</h2><span class="en">GUIDELINES</span></div>
+  <p class="lead">あづまテラス（${esc(site.name)}）が大切にしている想いをまとめた「活動の手引き」です。表紙から順にご覧ください。各ページをタップすると原寸で開きます。</p>
+
+  ${guidelineStack()}
+
+  <div class="card info" style="margin-top:20px">
+    <div class="section-head" style="margin-top:0"><h2 style="font-size:1.05rem">ビジョン</h2></div>
+    <p class="catch" style="font-size:1.2rem;color:var(--green-dark);margin:0 0 14px">${esc(site.vision)}</p>
+    <div class="section-head"><h2 style="font-size:1.05rem">行動指針</h2></div>
+    <ul class="guidelines" style="margin-top:6px">
+      <li>あるいてみよう</li>
+      <li>のぞいてみよう</li>
+      <li>きれいにしよう</li>
+      <li>ファンになろう</li>
+    </ul>
+  </div>
+</div></section>
+${lineCta()}
+`;
+  return layout({
+    title: "行動指針",
+    description: `${site.name}（あづまテラス）の活動の手引き。ビジョン「${site.vision}」と行動指針（あるいてみよう・のぞいてみよう・きれいにしよう・ファンになろう）、名前の由来やまちのイラストマップを掲載。`,
+    active: "guidelines.html",
+    jsonld: [SC],
+    content,
+  }, site);
 }
 
 // ---- 実行 ----
@@ -271,6 +300,7 @@ function build() {
     "shops.html": pageShops(),
     "medical.html": pageMedical(),
     "access.html": pageAccess(),
+    "guidelines.html": pageGuidelines(),
     "about.html": pageAbout(),
   };
   for (const [name, html] of Object.entries(pages)) {
