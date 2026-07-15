@@ -42,32 +42,67 @@ function lineCta() {
   return `<div class="cta"><a class="line-btn" href="${esc(site.lineUrl)}" target="_blank" rel="noopener">公式LINEでつながる</a></div>`;
 }
 
-// 「活動の手引き」分割画像（assets/guidelines/）。alt は内容を表す日本語。
-const GUIDELINES = [
-  { file: "01.jpg", caption: "表紙", alt: "活動の手引き 表紙「あづまテラス 活動の手引」とロゴ", wide: false },
-  { file: "02.jpg", caption: "はじめに", alt: "はじめに：「東あづま本通り」は「あづまテラス」へ！", wide: false },
-  { file: "03.jpg", caption: "ビジョン", alt: "ビジョン「心地いい」をともに創る", wide: false },
-  { file: "04.jpg", caption: "どんぐりのエピソード", alt: "手書きエピソード：ベンチで子どもからどんぐりを手渡された朝の話", wide: false },
-  { file: "05.jpg", caption: "メロンパンのエピソード", alt: "手書きエピソード：パン屋でのメロンパンを通じたささやかなつながり", wide: false },
-  { file: "06.jpg", caption: "名前に込めた想い", alt: "名前に込めた想い：みんなが集い心地よさを感じられる空間へ", wide: false },
-  { file: "07.jpg", caption: "ロゴマークの由来", alt: "ロゴマークの由来：「づ」をモチーフに、御神木クスノキの緑をイメージ", wide: false },
-  { file: "08.jpg", caption: "目指す姿・行動指針", alt: "目指す姿と行動指針（あるいてみよう・のぞいてみよう・きれいにしよう・ファンになろう）", wide: false },
-  { file: "09.jpg", caption: "まちのイラストマップ", alt: "あづまテラス周辺のイラストマップ（東あずま駅〜小村井駅、吾嬬神社・香梅園）", wide: true },
+// 「活動の手引き」分割画像（assets/guidelines/）。
+// 注: alt/説明は「手引きの引用」なので実物の冊子どおり（08は漢字「歩いてみよう・覗いてみよう」）。
+//     ※サイト内テキスト（バッジ等）は data/site.json 側でひらがなに統一（オーナー裁定）。
+const GUIDELINES = {
+  "01.jpg": { caption: "表紙", alt: "活動の手引き 表紙「あづまテラス 活動の手引」とロゴ" },
+  "02.jpg": { caption: "はじめに", alt: "はじめに：「東あづま本通り」は「あづまテラス」へ！" },
+  "03.jpg": { caption: "ビジョン", alt: "ビジョン「心地いい」をともに創る" },
+  "04.jpg": { caption: "どんぐりのエピソード", alt: "手書きエピソード：ベンチで子どもからどんぐりを手渡された朝の話" },
+  "05.jpg": { caption: "メロンパンのエピソード", alt: "手書きエピソード：パン屋でのメロンパンを通じたささやかなつながり" },
+  "06.jpg": { caption: "名前に込めた想い", alt: "名前に込めた想い：みんなが集い心地よさを感じられる空間へ" },
+  "07.jpg": { caption: "ロゴマークの由来", alt: "ロゴマークの由来：「づ」をモチーフに、御神木クスノキの緑をイメージ" },
+  "08.jpg": { caption: "目指す姿・行動指針", alt: "目指す姿と行動指針（歩いてみよう・覗いてみよう・きれいにしよう・ファンになろう）" },
+  "09.jpg": { caption: "まちのイラストマップ", alt: "あづまテラス周辺のイラストマップ（東あずま駅〜小村井駅、吾嬬神社・香梅園）" },
+};
+
+// 冊子と同じ「見開き」構成（画像は組み替えのみ・加工なし）
+const GUIDE_LAYOUT = [
+  { type: "single", items: ["01.jpg"] },                 // 表紙
+  { type: "single", items: ["03.jpg"] },                 // ビジョン
+  { type: "spread", items: ["02.jpg", "06.jpg"] },       // はじめに / 名前に込めた想い
+  { type: "spread", items: ["07.jpg", "08.jpg"] },       // ロゴマーク / 目指す姿・行動指針
+  { type: "spread", items: ["05.jpg", "04.jpg"] },       // メロンパン / どんぐり
+  { type: "full", items: ["09.jpg"] },                   // イラストマップ（全幅）
 ];
 
-// 縦並びギャラリー（クリックで原寸表示）
-function guidelineStack() {
-  const items = GUIDELINES.map((g) => {
-    const w = g.wide ? 2104 : 1052;
-    return `<figure class="guide-figure${g.wide ? " wide" : ""}">
-    <a href="assets/guidelines/${g.file}" target="_blank" rel="noopener" title="原寸で開く">
-      <img src="assets/guidelines/${g.file}" width="${w}" height="1488" loading="lazy" alt="${esc(g.alt)}">
-    </a>
-    <figcaption>${esc(g.caption)}</figcaption>
+function guideImgTag(file) {
+  const g = GUIDELINES[file];
+  const wide = file === "09.jpg";
+  return `<a class="pg" href="assets/guidelines/${file}" target="_blank" rel="noopener" title="タップで原寸表示（拡大可）">
+      <img src="assets/guidelines/${file}" width="${wide ? 2104 : 1052}" height="1488" loading="lazy" alt="${esc(g.alt)}">
+    </a>`;
+}
+
+function guidelineBook() {
+  const rows = GUIDE_LAYOUT.map((row) => {
+    if (row.type === "single") {
+      const f = row.items[0];
+      return `<figure class="guide-single">
+    ${guideImgTag(f)}
+    <figcaption>${esc(GUIDELINES[f].caption)}</figcaption>
+  </figure>`;
+    }
+    if (row.type === "full") {
+      const f = row.items[0];
+      return `<figure class="guide-full">
+    ${guideImgTag(f)}
+    <figcaption>${esc(GUIDELINES[f].caption)}</figcaption>
+  </figure>`;
+    }
+    // spread: 左右2枚を全幅で並置（縦積みにしない）
+    const [l, r] = row.items;
+    return `<figure class="guide-spread">
+    <div class="pages">
+      ${guideImgTag(l)}
+      ${guideImgTag(r)}
+    </div>
+    <figcaption>${esc(GUIDELINES[l].caption)} ／ ${esc(GUIDELINES[r].caption)}</figcaption>
   </figure>`;
   }).join("\n  ");
-  return `<div class="guide-stack">
-  ${items}
+  return `<div class="guide-book">
+  ${rows}
 </div>`;
 }
 
@@ -264,7 +299,7 @@ function pageGuidelines() {
   <div class="section-head"><h2>私たちの行動指針</h2><span class="en">GUIDELINES</span></div>
   <p class="lead">あづまテラス（${esc(site.name)}）が大切にしている想いをまとめた「活動の手引き」です。表紙から順にご覧ください。各ページをタップすると原寸で開きます。</p>
 
-  ${guidelineStack()}
+  ${guidelineBook()}
 
   <div class="card info" style="margin-top:20px">
     <div class="section-head" style="margin-top:0"><h2 style="font-size:1.05rem">ビジョン</h2></div>
