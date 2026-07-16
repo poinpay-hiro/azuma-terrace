@@ -192,7 +192,12 @@ section.block { padding: 26px 0; }
 .badge.past { background: #b9b2a1; }
 .event h3 { margin: 4px 0 6px; font-size: 1.14rem; }
 .event .when { color: var(--green-dark); font-weight: 700; font-size: .92rem; margin: 2px 0; }
+.event .when.time { color: var(--ink-soft); font-weight: 600; }
 .event .where { color: var(--ink-soft); font-size: .9rem; margin: 2px 0 10px; }
+
+/* イベントチラシ画像（タップで原寸） */
+.event-flyer { display: block; margin: 12px auto 0; max-width: 480px; border: 1px solid #efe7d7; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(90,80,40,.08); }
+.event-flyer img { width: 100%; height: auto; display: block; background: #fff; }
 
 .hero-event {
   background: #fff;

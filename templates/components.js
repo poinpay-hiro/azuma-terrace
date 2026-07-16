@@ -96,12 +96,16 @@ function shopJsonLd(s, site) {
 function eventCard(e) {
   const label = e.status === "upcoming" ? "開催予定" : e.status === "ongoing" ? "開催中" : "終了";
   const when = e.dateStart === e.dateEnd ? fmtDate(e.dateStart) : `${fmtDate(e.dateStart)}〜${fmtDate(e.dateEnd)}`;
+  const timeLine = e.timeNote ? `\n  <p class="when time">${esc(e.timeNote)}</p>` : "";
+  const flyer = e.image
+    ? `\n  <a class="event-flyer" href="assets/events/${esc(e.image)}" target="_blank" rel="noopener" title="チラシを原寸で開く"><img src="assets/events/${esc(e.image)}" width="1200" height="1683" loading="lazy" alt="${esc(e.title)}のチラシ"></a>`
+    : "";
   return `<article class="event" id="${esc(e.id)}">
   <span class="badge ${esc(e.status)}">${label}</span>
   <h3>${esc(e.title)}</h3>
-  <p class="when">${esc(when)}</p>
+  <p class="when">${esc(when)}</p>${timeLine}
   <p class="where">会場：${esc(e.venue)}</p>
-  <p>${esc(e.body || e.summary)}</p>
+  <p>${esc(e.body || e.summary)}</p>${flyer}
 </article>`;
 }
 
@@ -111,12 +115,12 @@ function eventJsonLd(e, site) {
     ongoing: "https://schema.org/EventScheduled",
     past: "https://schema.org/EventScheduled",
   };
-  return {
+  const obj = {
     "@context": "https://schema.org",
     "@type": "Event",
     name: e.title,
-    startDate: e.dateStart,
-    endDate: e.dateEnd,
+    startDate: e.startDateTime || e.dateStart,
+    endDate: e.endDateTime || e.dateEnd,
     eventStatus: statusMap[e.status],
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     location: {
@@ -132,6 +136,8 @@ function eventJsonLd(e, site) {
     description: e.summary,
     organizer: { "@type": "Organization", name: site.name },
   };
+  if (e.image) obj.image = `https://www.azuma-terrace.com/assets/events/${e.image}`;
+  return obj;
 }
 
 // サイト全体の ShoppingCenter（全ページ共通）

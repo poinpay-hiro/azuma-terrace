@@ -159,7 +159,8 @@ function pageIndex() {
 
 function pageEvents() {
   const upcoming = events.filter((e) => e.status === "upcoming" || e.status === "ongoing");
-  const past = events.filter((e) => e.status === "past").slice().sort((a, b) => (a.dateStart < b.dateStart ? 1 : -1));
+  // 「これまでの開催」は data/events.json の記載順（キュレーション順）で表示する
+  const past = events.filter((e) => e.status === "past");
   const upHtml = upcoming.length
     ? `<div class="grid">${upcoming.map(C.eventCard).join("\n")}</div>`
     : `<p class="lead">現在、開催予定・開催中のイベントはありません。これまでの開催をご覧ください。</p>`;
@@ -175,7 +176,7 @@ function pageEvents() {
 ${lineCta()}
 `;
   const jsonld = [SC, ...events.map((e) => C.eventJsonLd(e, site))];
-  return layout({ title: "イベント", description: `${site.name}のイベント情報。梅まつり・ハロウィンなど地域のイベントをお知らせします。`, active: "events.html", jsonld, content }, site);
+  return layout({ title: "イベント", description: `${site.name}のイベント情報。とうもろこしまつり2026（8月2日）や梅まつり・ハロウィンなど地域のイベントをお知らせします。`, active: "events.html", jsonld, content }, site);
 }
 
 function groupedShops(list, groupFn, groups) {
