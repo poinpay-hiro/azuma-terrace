@@ -69,9 +69,10 @@ function shopCard(s) {
   if (s.payment) rows.push(`<p class="meta"><span class="k">支払い</span><span>${esc(s.payment)}</span></p>`);
   if (s.description) rows.push(`<p class="meta"><span>${esc(s.description)}</span></p>`);
   if (s.url) rows.push(`<p class="meta"><a href="${esc(s.url)}" target="_blank" rel="noopener">公式サイト</a></p>`);
+  const formal = s.formalName ? `\n  <p class="formal-name">${esc(s.formalName)}</p>` : "";
   return `<article class="card" id="${esc(s.id)}">
   <span class="genre">${esc(s.genre)}</span>
-  <h3>${esc(s.name)}</h3>
+  <h3>${esc(s.name)}</h3>${formal}
   ${rows.join("\n  ")}
 </article>`;
 }
@@ -92,6 +93,7 @@ function shopJsonLd(s, site) {
   };
   const t = tel81(s.tel);
   if (t) obj.telephone = t;
+  if (s.formalName) obj.legalName = s.formalName;
   if (s.url) obj.url = s.url;
   if (Array.isArray(s.openingHoursSpec) && s.openingHoursSpec.length) {
     obj.openingHoursSpecification = s.openingHoursSpec.map((spec) => ({
