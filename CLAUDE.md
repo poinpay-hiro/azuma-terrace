@@ -72,7 +72,8 @@
 
 ## 6. 定型スクリプトと運用（確認プロンプト削減・2026-07）
 
-- **本番反映の確認は `node scripts/check-live.mjs`** を使う（`npm run check-live` でも可）。**PDFの画像化は `node scripts/convert-pdf.mjs <入力PDF> <出力JPG> [幅] [ページ]`** を使う。**アドホックな `curl` やワンライナーを都度書かない**（allow 済みの定型スクリプトに寄せて確認回数を減らす）。
+- **本番反映の確認は `node scripts/check-live.mjs`** を使う（`npm run check-live` でも可）。**PDFの画像化は `node scripts/convert-pdf.mjs <入力PDF> <出力JPG> [幅] [ページ]`** を使う。**OGP画像・faviconの生成は `node scripts/make-og.mjs`**（`npm run make-og`／固定処理・引数なし）。**アドホックな `curl` やワンライナーを都度書かない**（allow 済みの定型スクリプトに寄せて確認回数を減らす）。
+- **イベントの告知を強化するときは、`og-events.jpg` を最新イベントのチラシで作り直す**（`make-og.mjs` の corn2026 参照先を差し替えて再生成）。
 - **【司令塔条件】ネットワークを触る scripts は接続先を固定する**: 接続先は自ドメイン（www.azuma-terrace.com / azuma-terrace.com）と localhost のみをコード内定数で持ち、**任意URL/ホスト名を引数・環境変数で受け付けない**。`check-live.mjs` は検索文字列のみ引数で受け、`/` や `http` を含む引数はエラー終了する防御を実装済み。
 - **`scripts/` 配下の追加・変更は、コミット報告に必ず明記する（`verify.mjs` と同格の扱い）。** 検品を弱める変更は事前承認必須（§1）。
 - **【ask計測】ask（確認）が発生したコマンドは、`~/Downloads/report.md` 末尾に「ask発生ログ」として毎回列挙する（種別と回数）。** ただし**許可申請の判定基準は頻度ではなく「外に出るか・戻れるか」**（＝push・外部送信・削除等の不可逆/外向き操作は、たとえ低頻度でも確認を残す。逆に高頻度でも read-only なら allow 化してよい）。司令塔注意（2026-07）。

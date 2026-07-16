@@ -246,6 +246,33 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
   check("events過去=dateStart降順", pass, detail);
 }
 
+// ============ 12. OGP: og:title / og:image / twitter:card ＋ og:image絶対URL＆実在 ============
+{
+  const BASE = "https://www.azuma-terrace.com/";
+  const problems = [];
+  for (const p of htmlPages) {
+    const html = readHtml(p);
+    const ogTitle = (html.match(/<meta property="og:title" content="([^"]*)"/) || [])[1];
+    const ogImage = (html.match(/<meta property="og:image" content="([^"]*)"/) || [])[1];
+    const twCard = (html.match(/<meta name="twitter:card" content="([^"]*)"/) || [])[1];
+    if (!ogTitle) problems.push(`${p}.html: og:title 無し`);
+    if (!twCard) problems.push(`${p}.html: twitter:card 無し`);
+    if (!ogImage) { problems.push(`${p}.html: og:image 無し`); continue; }
+    if (!ogImage.startsWith(BASE)) { problems.push(`${p}.html: og:image が絶対URL(${BASE})でない (${ogImage})`); continue; }
+    const rel = ogImage.slice(BASE.length).split("#")[0].split("?")[0];
+    if (!distFiles.has(rel)) problems.push(`${p}.html: og:image 参照先が dist に無い (${rel})`);
+  }
+  check("OGP og:title/og:image/twitter:card", problems.length === 0,
+    problems.length ? problems.slice(0, 8).join(" / ") : `${htmlPages.length}ページとも揃い・og:image絶対URL＆実在`);
+}
+
+// ============ 13. favicon.ico / apple-touch-icon.png が dist 直下に存在 ============
+{
+  const missing = ["favicon.ico", "apple-touch-icon.png"].filter((f) => !distFiles.has(f));
+  check("favicon/apple-touch-icon 存在", missing.length === 0,
+    missing.length ? `dist直下に無い: ${missing.join(", ")}` : "favicon.ico・apple-touch-icon.png あり");
+}
+
 // ============ 出力 ============
 const pad = Math.max(...results.map((r) => r.name.length));
 let failed = 0;

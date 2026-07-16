@@ -358,6 +358,11 @@ function build() {
   fs.copyFileSync(path.join(ROOT, "templates", "styles.css"), path.join(DIST, "styles.css"));
   // アセット（ロゴ等）
   const n = copyDir(ASSETS, path.join(DIST, "assets"));
+  // favicon / apple-touch-icon は dist 直下に配置（生成元は assets/、make-og.mjs で生成）
+  for (const f of ["favicon.ico", "apple-touch-icon.png"]) {
+    const src = path.join(ASSETS, f);
+    if (fs.existsSync(src)) fs.copyFileSync(src, path.join(DIST, f));
+  }
 
   console.log(`✓ built ${Object.keys(pages).length} pages -> dist/`);
   console.log(`✓ copied ${n} asset file(s), styles.css`);

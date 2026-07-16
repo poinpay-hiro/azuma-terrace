@@ -6,7 +6,8 @@
   "scripts": {
     "build": "node build.js",
     "verify": "node build.js && node scripts/verify.mjs",
-    "check-live": "node scripts/check-live.mjs"
+    "check-live": "node scripts/check-live.mjs",
+    "make-og": "node scripts/make-og.mjs"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^0.1.60",
