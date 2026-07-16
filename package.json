@@ -5,6 +5,11 @@
   "description": "東あづま本通り会（あづまテラス）公式サイト。データ駆動の静的サイト生成。",
   "scripts": {
     "build": "node build.js",
-    "verify": "node build.js && node scripts/verify.mjs"
+    "verify": "node build.js && node scripts/verify.mjs",
+    "check-live": "node scripts/check-live.mjs"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^0.1.60",
+    "pdfjs-dist": "2.16.105"
   }
 }
