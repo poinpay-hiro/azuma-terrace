@@ -273,6 +273,29 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
     missing.length ? `dist直下に無い: ${missing.join(", ")}` : "favicon.ico・apple-touch-icon.png あり");
 }
 
+// ============ 14. openingHours/closedDays の表記ルール適合 ============
+{
+  let shops = [];
+  try { shops = JSON.parse(fs.readFileSync(path.join(DATA, "shops.json"), "utf8")); } catch (e) {}
+  // 許可文字: 曜日1文字 / 数字 / : / 〜(U+301C) / ／(U+FF0F) / 、(U+3001) / ・(U+30FB) / 第 / 祝 / 半角スペース
+  const ALLOWED = /^[月火水木金土日0-9:〜／、・第祝 ]+$/;
+  const TIME_RANGE = /\d{1,2}:\d{2}〜\d{1,2}:\d{2}/;
+  const problems = [];
+  for (const s of shops) {
+    for (const field of ["openingHours", "closedDays"]) {
+      const v = s[field];
+      if (!v) continue;
+      if (/曜/.test(v)) problems.push(`${s.name}.${field}: 「曜」を含む`);
+      if (/～/.test(v)) problems.push(`${s.name}.${field}: 全角チルダU+FF5Eを含む（U+301Cに統一）`);
+      if (!ALLOWED.test(v)) problems.push(`${s.name}.${field}: 許可外の文字を含む`);
+      if (v.includes(":") && !TIME_RANGE.test(v)) problems.push(`${s.name}.${field}: 時間が「9:00〜18:30」形式でない`);
+    }
+  }
+  const n = shops.filter((s) => s.openingHours || s.closedDays).length;
+  check("営業/診療時間の表記ルール適合", problems.length === 0,
+    problems.length ? problems.slice(0, 8).join(" / ") : `該当${n}店すべて適合`);
+}
+
 // ============ 出力 ============
 const pad = Math.max(...results.map((r) => r.name.length));
 let failed = 0;
