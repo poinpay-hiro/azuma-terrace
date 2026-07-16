@@ -107,7 +107,11 @@ function guidelineBook() {
 }
 
 function pickFeaturedEvents(all) {
-  const active = all.filter((e) => e.status === "upcoming" || e.status === "ongoing");
+  // 開催予定/開催中があれば dateStart 昇順（直近が先頭）。無ければ直近の過去1件。
+  const active = all
+    .filter((e) => e.status === "upcoming" || e.status === "ongoing")
+    .slice()
+    .sort((a, b) => (a.dateStart < b.dateStart ? -1 : a.dateStart > b.dateStart ? 1 : 0));
   if (active.length) return active;
   const past = all.filter((e) => e.status === "past").slice().sort((a, b) => (a.dateStart < b.dateStart ? 1 : -1));
   return past.slice(0, 1);
@@ -158,9 +162,16 @@ function pageIndex() {
 }
 
 function pageEvents() {
-  const upcoming = events.filter((e) => e.status === "upcoming" || e.status === "ongoing");
-  // 「これまでの開催」は data/events.json の記載順（キュレーション順）で表示する
-  const past = events.filter((e) => e.status === "past");
+  // 表示順は build.js が機械的にソートする（events.json の記載順に意味を持たせない・オーナー裁定）
+  //  開催予定/開催中: dateStart 昇順（近い日付が上） ／ 過去: dateStart 降順（新しいものが上）
+  const upcoming = events
+    .filter((e) => e.status === "upcoming" || e.status === "ongoing")
+    .slice()
+    .sort((a, b) => (a.dateStart < b.dateStart ? -1 : a.dateStart > b.dateStart ? 1 : 0));
+  const past = events
+    .filter((e) => e.status === "past")
+    .slice()
+    .sort((a, b) => (a.dateStart < b.dateStart ? 1 : a.dateStart > b.dateStart ? -1 : 0));
   const upHtml = upcoming.length
     ? `<div class="grid">${upcoming.map(C.eventCard).join("\n")}</div>`
     : `<p class="lead">現在、開催予定・開催中のイベントはありません。これまでの開催をご覧ください。</p>`;

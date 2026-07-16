@@ -217,6 +217,35 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
     problems.length ? problems.slice(0, 8).join(" / ") : `${count}枚すべて追跡済み・1MB以下`);
 }
 
+// ============ 11. events.html「これまでの開催」が dateStart 降順で並んでいる ============
+{
+  let events = [];
+  try { events = JSON.parse(fs.readFileSync(path.join(DATA, "events.json"), "utf8")); } catch (e) {}
+  const expected = events
+    .filter((e) => e.status === "past")
+    .slice()
+    .sort((a, b) => (a.dateStart < b.dateStart ? 1 : a.dateStart > b.dateStart ? -1 : 0))
+    .map((e) => e.title);
+  let detail = "", pass = true;
+  const htmlPath = path.join(DIST, "events.html");
+  if (!fs.existsSync(htmlPath)) { pass = false; detail = "events.html が無い"; }
+  else {
+    const html = fs.readFileSync(htmlPath, "utf8");
+    const marker = html.indexOf("これまでの開催");
+    if (marker < 0) { pass = false; detail = "「これまでの開催」見出しが無い"; }
+    else {
+      const tail = html.slice(marker);
+      const actual = [...tail.matchAll(/<h3>([\s\S]*?)<\/h3>/g)].map((m) => m[1].trim());
+      const same = actual.length === expected.length && actual.every((t, i) => t === expected[i]);
+      pass = same;
+      detail = same
+        ? `過去${expected.length}件が dateStart 降順（${expected.join(" > ")}）`
+        : `期待[${expected.join(" | ")}] ≠ 実際[${actual.join(" | ")}]`;
+    }
+  }
+  check("events過去=dateStart降順", pass, detail);
+}
+
 // ============ 出力 ============
 const pad = Math.max(...results.map((r) => r.name.length));
 let failed = 0;
