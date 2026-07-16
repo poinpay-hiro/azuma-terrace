@@ -174,6 +174,7 @@ function shoppingCenterJsonLd(site) {
       addressCountry: "JP",
     },
     email: site.email,
+    geo: site.geo ? { "@type": "GeoCoordinates", latitude: site.geo.lat, longitude: site.geo.lng } : undefined,
     sameAs: [site.lineUrl],
   };
 }

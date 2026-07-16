@@ -241,10 +241,14 @@ ${lineCta()}
 }
 
 function pageAccess() {
-  const q = encodeURIComponent(site.addressFull.replace(/^〒\S+\s*/, ""));
-  const gmap = `https://www.google.com/maps/search/?api=1&query=${q}`;
-  const osm = `https://www.openstreetmap.org/search?query=${q}`;
-  const osmEmbed = `https://www.openstreetmap.org/export/embed.html?bbox=139.8235%2C35.7075%2C139.8355%2C35.7155&layer=mapnik&marker=35.7115%2C139.8295`;
+  // 地図ピン・geo＝来街者の目的地（商店街中心・ダイエー前）。会の所在地(address)とは役割が異なる（一致させない）。
+  const lat = site.geo.lat, lng = site.geo.lng;
+  const gmap = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  const osm = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`;
+  // 商店街と東あずま駅が両方見える程度のbbox（中心=ピン座標、マーカー付き）
+  const dLat = 0.0045, dLng = 0.007;
+  const bbox = [(lng - dLng).toFixed(5), (lat - dLat).toFixed(5), (lng + dLng).toFixed(5), (lat + dLat).toFixed(5)].join("%2C");
+  const osmEmbed = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lng}`;
   const nearby = site.nearby.map((n) => `<li><strong>${esc(n.name)}</strong>：${esc(n.note)}</li>`).join("");
   const content = `
 <section class="block"><div class="container">
@@ -261,6 +265,7 @@ function pageAccess() {
     <a href="${esc(osm)}" target="_blank" rel="noopener">OpenStreetMapで開く</a>
   </div>
   <iframe class="map-embed" src="${esc(osmEmbed)}" title="あづまテラス 周辺地図（OpenStreetMap）" loading="lazy"></iframe>
+  <p class="lead" style="margin-top:12px">地図のピンは商店街の中心（ダイエー前）です。イベントは主に東あずま駅前（ダイエー前）周辺で開催します。</p>
 </div></section>
 
 <section class="block"><div class="container">
