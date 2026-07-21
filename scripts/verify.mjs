@@ -44,13 +44,19 @@ function jsonLdBlocks(html) {
 const distFiles = listFiles(DIST);
 const htmlPages = REQUIRED_PAGES.filter((p) => fs.existsSync(path.join(DIST, p + ".html")));
 
+// Vercel プラットフォームが本番で自動配信するパス（dist には存在しない）。
+// 内部リンク検査の対象外にするのはこの1本のみ（除外を広げないこと）。
+// 実在の代わりに、項目15「全ページに計測タグ」で参照の有無を機械判定する。
+const VERCEL_INSIGHTS = "/_vercel/insights/script.js";
+
 // ============ 2. 内部リンク切れゼロ ============
 {
   const broken = [];
   for (const p of htmlPages) {
     const html = readHtml(p);
     const refs = [...html.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1])
-      .filter((u) => !/^(https?:|tel:|mailto:|#|data:)/.test(u));
+      .filter((u) => !/^(https?:|tel:|mailto:|#|data:)/.test(u))
+      .filter((u) => u !== VERCEL_INSIGHTS); // Vercel配信パス（上記コメント参照）
     for (const r of refs) {
       const clean = r.split("#")[0].split("?")[0];
       if (!clean) continue;
@@ -294,6 +300,17 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
   const n = shops.filter((s) => s.openingHours || s.closedDays).length;
   check("営業/診療時間の表記ルール適合", problems.length === 0,
     problems.length ? problems.slice(0, 8).join(" / ") : `該当${n}店すべて適合`);
+}
+
+// ============ 15. Vercel Web Analytics 計測タグが全ページにある ============
+{
+  const missing = [];
+  for (const p of htmlPages) {
+    const html = readHtml(p);
+    if (!html.includes(`src="${VERCEL_INSIGHTS}"`)) missing.push(`${p}.html`);
+  }
+  check("計測タグ(Vercel Analytics)全ページ", missing.length === 0,
+    missing.length ? `無し: ${missing.join(", ")}` : `${htmlPages.length}ページとも計測タグあり`);
 }
 
 // ============ 出力 ============

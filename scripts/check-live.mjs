@@ -9,6 +9,7 @@ import process from "node:process";
 const ORIGIN = "https://www.azuma-terrace.com";   // 本番 www（定数）
 const APEX = "https://azuma-terrace.com";          // apex（定数・308確認用）
 const PAGES = ["/", "/events", "/shops", "/medical", "/access", "/guidelines", "/about"]; // 全7ページ
+const INSIGHTS = "/_vercel/insights/script.js"; // Vercel Web Analytics（本番が自動配信・定数）
 
 // ---- 引数防御: URL/ホスト名の混入を拒否（検索文字列のみ許可） ----
 const needles = process.argv.slice(2);
@@ -65,6 +66,20 @@ function jsonLdBlocks(html) {
     check("apex 308→www リダイレクト", ok, `status=${res.status} location=${loc || "(なし)"}`);
   } catch (e) {
     check("apex 308→www リダイレクト", false, `ERR(${e.cause?.code || e.message})`);
+  }
+
+  // 計測タグ（Vercel Web Analytics）が本番の全ページHTMLに含まれる
+  {
+    const noTag = PAGES.filter((p) => !(pages[p]?.body || "").includes(`src="${INSIGHTS}"`));
+    check("計測タグ 全ページ含有", noTag.length === 0, noTag.length ? `無し: ${noTag.join(", ")}` : `${PAGES.length}ページとも含有`);
+  }
+
+  // 計測スクリプト本体が 200 で配信されている
+  try {
+    const res = await fetch(ORIGIN + INSIGHTS, { redirect: "follow" });
+    check("計測スクリプト 200配信", res.status === 200, `status=${res.status}`);
+  } catch (e) {
+    check("計測スクリプト 200配信", false, `ERR(${e.cause?.code || e.message})`);
   }
 
   // 引数の検索文字列（あれば）: いずれかのページに存在
