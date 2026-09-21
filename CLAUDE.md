@@ -28,7 +28,7 @@
   3. 全 JSON-LD ブロックがパース成功
   4. 店舗 JSON-LD の電話が `+81` 形式／電話 null の店に `telephone` キーが無い
   5. Event の JSON-LD が必須項目（name/startDate/location）を持つ
-  6. `dist/` とステージング対象に `*.pdf` / `assets/guidelines/**.png` / `.env` / `.claude` が含まれない（秘密・不要物の混入検知）
+  6. `dist/` とステージング対象に `*.pdf` / `assets/guidelines/**.png` / `.env` / `.claude` / `.review-approved` が含まれない（秘密・不要物の混入検知）
 
 ### ループの運用ルール（厳守）
 - **サイトに変更を加えたら、必ず `npm run verify` を実行する。**
@@ -40,9 +40,22 @@
 
 ## 2. 報告のルール
 
-- **完了報告は必ず `~/Downloads/report-azuma.md` に上書き保存してから、チャットに要約を返す**（会話の記憶に頼らない）。
+- **オーナーへ返す実質的な応答（完了報告に限らず、調査結果・要約・裁定依頼・中間報告を含む）は、必ず `~/Downloads/report-azuma.md` に上書き保存してから、チャットに要約を返す**（会話の記憶に頼らない）。
   - ファイル名の根拠: チーム間で共通の報告ファイル名を使ったことによる上書き衝突を防ぐため、チーム別ファイル名に分離（2026-07司令塔規約）。
-- 報告言語は日本語。提案・懸念は「提案」として本文から分離して書く。他チームに有用な教訓があれば末尾に【共有候補】を1行。
+  - 対象範囲の根拠: 「完了報告」と狭く読むと、調査・裁定依頼の回で書き漏らす（coupon-site で 2026-08-22 に実際に発生）。数字や裁定依頼を含む回ほど残す価値が高い（2026-09 体制同期で coupon-site と揃えた）。
+- 報告言語は日本語。提案・懸念は「提案」として本文から分離して書く。
+- **冒頭の定型**（見出しの直後に必ず置く）:
+  - 修正実行：した／していない（調査のみ）
+  - コミット：コミットID（フル or 短縮）／なし ・ push：済み（`旧..新`）／未（承認待ち）／なし
+  - 検品：`npm run verify` の結果（全N項目 PASS 等）／非適用の理由
+  - DDL適用確認：**該当なし（azuma に DB なし）**（固定文言）
+- **末尾の定型と並び順**（この順で固定。要旨が最後）:
+  1. ask発生ログ（§6）
+  2. 【共有候補】（他チームに有用な教訓があれば1行。無ければ「なし」）
+  3. ■分担の振り返り（5行以内）
+  4. ■司令塔向け要旨（15行以内）
+- **訂正は黙って上書きしない**: 過去の記述（report・CLAUDE.md 等の正本）の誤りを直すときは旧記述を消さず、取り消し線（`~~旧~~ → 新`）または「⚠️旧記述の訂正（YYYY-MM-DD）」ブロックで、何を・なぜ直したかを経緯ごと残す。
+- **オーナー確認事項は番号つきテキストで列挙し、各点に推奨案と理由を1行添える**。選択式UI（AskUserQuestion 等）は使わない（司令塔が全点まとめて裁定し、オーナーがコピペ1回で回答する運用のため）。
 
 ---
 
@@ -50,7 +63,17 @@
 
 - **`git add -A` 禁止。コミットは対象ファイルを明示指定する。**
 - 秘密情報（`.env` 等）・元PDF（`*.pdf`）・生成物（`dist/`）・`node_modules/`・`.claude/` はコミットしない（`.gitignore` 済み。verify の項目6でも二重チェック）。
-- `main` へ push すると Vercel が自動デプロイ（接続後）。push は指示に沿って行う。
+- `main` へ push すると Vercel が自動デプロイ（接続後）。push は下記の関所を通して行う。
+- **【push関所】**（正本＝coupon-site `docs/PROJECT_INSTRUCTIONS.md`「push検分ゲート」。ここは azuma への当てはめのみ）:
+  - 順序は **verify全PASS → report → 司令塔検分 → フルSHA承認宣言 → `bash scripts/approve-push.sh <フルSHA>`**。
+  - **push の引き金はフルSHA付きの承認宣言のみ**。流れ・選択肢への回答・「自動モードだから」を引き金にしない。
+  - 通行証 `.review-approved`（1行目＝検分を受けた HEAD のフルSHA）が現在の `git rev-parse HEAD` と完全一致する時だけ push が通る（PreToolUse `scripts/hooks/pre-push-gate.sh`。不一致・不存在・内部エラーはすべてブロック＝fail-closed）。
+  - **通行証は1回限り**: push 成功で自動失効（PostToolUse `scripts/hooks/post-push-cleanup.sh`）。新コミットを積めば HEAD が変わり再ブロック（1コミット1検分）。
+  - **承認宣言の前に `.review-approved` を書かない**（検分の飛ばし＝禁止）。`.review-approved` は `.gitignore` 済み・非コミット（verify #6 でも検知）。
+  - `approve-push.sh` は HEAD と引数SHAの一致を自分で検証してから通行証を書く（スクリプト内の push は hook を通らないため、この検証が関所の代わりになる）。手動の `git push` は hook でブロックされる。
+  - hook は「コマンド位置」の `git push` だけに反応する（コミットメッセージ内の文字列では誤作動しない）。`$(...)` 等のコマンド置換経由は対象外＝正規の経路は `approve-push.sh` のみ、という運用でカバーする。
+  - **`scripts/approve-push.sh`・`scripts/hooks/*` は `verify.mjs` と同格の安全装置**。変更・弱化は理由を添えて事前承認必須。hooks の登録は `.claude/settings.local.json`（**AI は編集しない。司令塔が完成形を作りオーナーが貼る**）。
+  - 検分の中身（azuma の基準・2026-09 オーナー裁定）: **差分に個人情報が無い／根拠（提出書類等）がコミットメッセージにある／verify PASS** の3点。
 - 参考: バイナリ多めのコミットで `git push` が HTTP 400（RPC failed / sideband disconnect）になったら、`git config http.postBuffer 524288000` ＋ `git config http.version HTTP/1.1`（本リポジトリにローカル設定済み）で回避できる。
 
 ---

@@ -125,13 +125,15 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
 // ============ 6. 秘密・不要物の混入検知（dist / git対象）============
 // 注: assets/guidelines/**.png は「活動の手引き」画像として公開可（オーナー承認済み）→ 禁止対象から除外。
 //     *.pdf / .env / .claude / dist / node_modules の禁止は維持。
+//     .review-approved（push関所の通行証・ローカル限り）も禁止（CLAUDE.md §3）。
 {
   const bad = [];
   const isForbidden = (f) =>
     f.endsWith(".pdf") ||
     /(^|\/)\.env(\.|$)/.test(f) ||
     f === ".env" ||
-    /(^|\/)\.claude(\/|$)/.test(f);
+    /(^|\/)\.claude(\/|$)/.test(f) ||
+    /(^|\/)\.review-approved$/.test(f);
   // dist/・node_modules/ が git 追跡されていないこと（生成物・依存の混入禁止）
   const isForbiddenInGit = (f) => isForbidden(f) || /^dist\//.test(f) || /(^|\/)node_modules\//.test(f);
 
@@ -140,7 +142,7 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
   // git 追跡ファイル + ステージング対象
   if (gitAll) for (const f of gitAll) if (isForbiddenInGit(f)) bad.push("git:" + f);
 
-  check("秘密/不要物の非混入(*.pdf, .env, .claude, dist, node_modules)", bad.length === 0,
+  check("秘密/不要物の非混入(*.pdf, .env, .claude, .review-approved, dist, node_modules)", bad.length === 0,
     bad.length ? bad.slice(0, 8).join(" / ") : "混入なし");
 }
 

@@ -13,3 +13,6 @@ node_modules/
 *.pdf
 .env
 .env.*
+
+# push関所の通行証（ローカル限り・1回限り。CLAUDE.md §3）
+.review-approved
