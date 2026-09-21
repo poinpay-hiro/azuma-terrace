@@ -370,6 +370,7 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
 {
   const MOBILE_ALLOWLIST = {
     // "shop-id": "根拠（例: 提出書類で店舗代表番号と確認・YYYY-MM-DD 裁定）",
+    "uzu-shokudo": "店舗のスマホ＝代表番号・オーナー裁定 2026-09-21（ops_orders id=19）",
   };
   const MOBILE_RE = /(^|[^0-9])0[789]0[-\s]?\d{4}[-\s]?\d{4}(?![0-9])/;
   const found = [];
