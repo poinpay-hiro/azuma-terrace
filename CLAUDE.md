@@ -9,9 +9,10 @@
 
 - **名称**: 東あづま本通り会（愛称：あづまテラス／azuma terrace）公式サイト
 - **方針**:「AIに読ませる名刺」= 構造化データ(JSON-LD)必須・事実はテキスト明記・静的で軽いHTML・装飾JSは最小限。
-- **構成**: フレームワーク不使用。`build.js`（Node標準ライブラリのみ）が `data/*.json` ＋ `templates/` を読み `dist/` に6ページ生成（index/events/shops/medical/access/about）。`dist/` は `.gitignore` 対象で、Vercel がビルド時に `node build.js` で生成する（`vercel.json`）。
+- **構成**: フレームワーク不使用。`build.js`（Node標準ライブラリのみ）が `data/*.json` ＋ `templates/` を読み `dist/` に ~~6ページ生成（index/events/shops/medical/access/about）~~ → **7ページ生成（index/events/shops/medical/access/guidelines/about）**。`dist/` は `.gitignore` 対象で、Vercel がビルド時に `node build.js` で生成する（`vercel.json`）。
 - **データ**: 器と中身を分離。`data/site.json`・`data/shops.json`（全42店 shop33/medical9）・`data/events.json`。店舗の営業時間等は各店の null フィールドに追記→再ビルドで反映。
-- **アセット**: `assets/` にロゴSVG（改変禁止）、`assets/guidelines/*.jpg`（活動の手引きの分割画像。about に掲載）。
+- **アセット**: `assets/` にロゴSVG（改変禁止）、`assets/guidelines/*.jpg`（活動の手引きの分割画像。~~about に掲載~~ → **guidelines.html に見開き構成で掲載・about からはリンクのみ**）。
+- ⚠️旧記述の訂正（2026-09-21・体制同期案件 第3段）: 本節の「6ページ」「about に掲載」は、guidelines ページ新設（2026-07）後も更新されずに残っていた旧記述。verify.mjs は当時から7ページで検査しており、**文書側が古かった**（実装は正しい）。
 - リポジトリ: GitHub `poinpay-hiro/azuma-terrace`（Public）。独自ドメイン/DNS はオーナーが後日。
 
 ---
@@ -22,17 +23,35 @@
 
 ### 実行するもの
 - 検品スクリプト: `scripts/verify.mjs`（1ファイルに集約）。`npm run verify`（= `node build.js && node scripts/verify.mjs`）で実行。
-- 検品項目（1つでもFAILなら終了コード1）:
-  1. `dist/` に6ページ（index/events/shops/medical/access/about）が存在
-  2. 全ページの内部リンク切れゼロ（assets含む）
+- 判定は **PASS / FAIL / WARN** の3段階。**1つでも FAIL なら終了コード1**。**WARN は push を止めない（終了コード0）が、report に必ず載せる**（該当内容と、裁定が要るかどうか）。項目7の「画像1MB超」も同じく非致命の警告として出力される。
+- 検品項目（全17項目・2026-09-21 時点）:
+  1. `dist/` に **7ページ**（index/events/shops/medical/access/guidelines/about）が存在
+  2. 全ページの内部リンク切れゼロ（assets含む。Vercel 計測タグのパス1本のみ除外＝§6）
   3. 全 JSON-LD ブロックがパース成功
   4. 店舗 JSON-LD の電話が `+81` 形式／電話 null の店に `telephone` キーが無い
   5. Event の JSON-LD が必須項目（name/startDate/location）を持つ
-  6. `dist/` とステージング対象に `*.pdf` / `assets/guidelines/**.png` / `.env` / `.claude` / `.review-approved` が含まれない（秘密・不要物の混入検知）
+  6. `dist/` と git 追跡・ステージング対象に `*.pdf` / `.env` / `.claude` / `.review-approved` が含まれない、`dist/`・`node_modules/` が git 追跡されていない（秘密・不要物の混入検知。**`assets/guidelines/**.png` は公開可で禁止対象外**＝オーナー承認済み）
+  7. ページが参照する画像が `dist/` に実在（1MB超の画像は警告）
+  8. 全ページの `<title>` と meta description が非空
+  9. JSON-LD の `@context` が schema.org で `@type` がある
+  10. 活動の手引き画像が git 追跡済みで1枚1MB以下
+  11. events の「これまでの開催」が dateStart 降順（§5 確定事項）
+  12. OGP（og:title / og:image / twitter:card）が揃い、og:image が絶対URLで実在
+  13. favicon.ico / apple-touch-icon.png が `dist/` 直下に存在
+  14. openingHours / closedDays が表記ルールに適合（§5 確定事項）
+  15. Vercel Web Analytics の計測タグが全ページにある（§6）
+  16. **秘密パターン走査**（FAIL）: git 追跡ファイル＋ステージング中ファイルの**中身**から、トークン・鍵の形（GitHub トークン／`sk-` 形式キー／JWT／AWS・Google キー／Slack トークン／秘密鍵）を検知。出力はファイル名と種類のみ（値は出さない）
+  17. **個人携帯番号の検知**（WARN）: `data/*.json` の 090/080/070 で始まる番号。店舗の代表番号として正当なものは verify.mjs の `MOBILE_ALLOWLIST` に「店舗ID: 根拠」で登録する。**allowlist への追加は裁定事項**（勝手に追加しない。出力に番号そのものは出さない）
+- ⚠️旧記述の訂正（2026-09-21・体制同期案件 第3段）: 本節の検品項目は長く次の記載のままで、verify.mjs の実態（15項目）と食い違っていた。
+  - ~~検品項目（1つでもFAILなら終了コード1）: 1〜6 の6項目~~ → 実態は 15項目（項目7〜15 は 2026-07〜08 に追加されたが文書に反映されていなかった）。今回 16・17 を加えて **17項目**。
+  - ~~1. `dist/` に6ページ（index/events/shops/medical/access/about）が存在~~ → 7ページ（guidelines 含む）。
+  - ~~6. `dist/` とステージング対象に `*.pdf` / `assets/guidelines/**.png` / `.env` / `.claude` / `.review-approved` が含まれない~~ → `assets/guidelines/**.png` は**オーナー承認済みで公開可**として verify.mjs では禁止対象から除外済みだった（verify のコメントに記載）。**文書側が古かった**（検品を弱める変更ではない）。
 
 ### ループの運用ルール（厳守）
 - **サイトに変更を加えたら、必ず `npm run verify` を実行する。**
 - **FAIL があれば、自分で原因を特定・修正して再実行する。全PASSになるまで人間に報告せず自走する（ループ上限10回）。** 10回を超えても全PASSにならなければ、状況を整理して人間に相談する。
+- **docs だけの変更は verify を省略できる**: 変更が `*.md`（CLAUDE.md・README.md 等）だけで、`data/`・`templates/`・`build.js`・`assets/`・`scripts/`・`vercel.json`・`package.json` に一切触れていない場合に限る（サイトの出力に影響しないため。coupon-site §9 と同じ考え方）。**1行でもそれ以外が混ざれば通常どおり verify を通す**。省略したときは report の冒頭「検品」行に「非適用（docs のみ）」と書く。
+  - ⚠️ 注意: 項目16（秘密パターン走査）は `*.md` も走査対象。docs に鍵やトークンを貼る事故を拾えるのは verify だけなので、**迷ったら実行する**（数秒で終わる）。
 - **全PASS後に報告する。** 報告には ①変更内容 ②検品結果（全項目PASSの出力を貼る）③diffと説明の一致（実際の差分と説明が食い違っていないかの自己監査）を必ず含める。
 - **検品スクリプト（verify.mjs）自体を変更する場合は、その理由を報告に明記する。検品を弱める変更（項目削除・条件緩和）は事前承認必須**（勝手に緩めない）。
 
@@ -74,7 +93,7 @@
   - hook は「コマンド位置」の `git push` だけに反応する（コミットメッセージ内の文字列では誤作動しない）。`$(...)` 等のコマンド置換経由は対象外＝正規の経路は `approve-push.sh` のみ、という運用でカバーする。
   - **`scripts/approve-push.sh`・`scripts/hooks/*` は `verify.mjs` と同格の安全装置**。変更・弱化は理由を添えて事前承認必須。hooks の登録は `.claude/settings.local.json`（**AI は編集しない。司令塔が完成形を作りオーナーが貼る**）。
   - 検分の中身（azuma の基準・2026-09 オーナー裁定）: **差分に個人情報が無い／根拠（提出書類等）がコミットメッセージにある／verify PASS** の3点。
-- 参考: バイナリ多めのコミットで `git push` が HTTP 400（RPC failed / sideband disconnect）になったら、`git config http.postBuffer 524288000` ＋ `git config http.version HTTP/1.1`（本リポジトリにローカル設定済み）で回避できる。
+- push が失敗したときの対処は §7 教訓集（HTTP 400 → 教訓1／認証エラー → 教訓5）。
 
 ---
 
@@ -107,3 +126,39 @@
 - **【計測タグ】全ページに Vercel Web Analytics の `<script defer src="/_vercel/insights/script.js">` を出力する（`templates/layout.js`）。このパスは Vercel 本番環境が自動配信するため `dist/` には存在せず、ローカルプレビューでは 404 になるが正常・無害。** verify は内部リンク検査からこの1本のみ除外し、代わりに「全ページに計測タグが存在する」を検査する。
 - **【バックアップ運用】節目に `node scripts/backup.mjs` を実行する（自動化しない）。** 節目＝**①デザイン資産の新規受領時 ②イベントチラシ追加時 ③ドメイン/Vercel設定の変更時**。保存先は **`~/Dropbox/azuma-backups/`（日付つきファイル名）**。出力は `azuma-assets_YYYY-MM-DD.zip`（原本PDF一式。`*.pdf` は .gitignore のため**gitに載らない＝zipが唯一の控え**）／`azuma-terrace_repo_YYYY-MM-DD.bundle`（git全履歴）／`claude-settings_YYYY-MM-DD.json`。**設定記録 `azuma-settings_YYYY-MM-DD.md`（ドメイン・DNS・Vercel等の手書き記録）は、設定変更のたびに既存を編集せず新しい日付で作り直す**（履歴を残すため）。日次・cron等での自動化はしない（データ本体はgitに載るため節目取得で足りる）。`backup.mjs` は**ネットワークに接続せず**、入出力パスをコード内定数に固定して引数を受け付けない（§6の接続先固定と同じ思想）。
 - **【ask計測】ask（確認）が発生したコマンドは、`~/Downloads/report-azuma.md` 末尾に「ask発生ログ」として毎回列挙する（種別と回数）。** ただし**許可申請の判定基準は頻度ではなく「外に出るか・戻れるか」**（＝push・外部送信・削除等の不可逆/外向き操作は、たとえ低頻度でも確認を残す。逆に高頻度でも read-only なら allow 化してよい）。司令塔注意（2026-07）。
+
+---
+
+## 7. 教訓集（過去にはまった罠 — 同じ失敗を繰り返さない）
+
+> §5「確定事項・変更禁止」（オーナー裁定の記録）とは役割が違う。ここは**作業上の罠と対処**の記録。連番で追記し、番号は振り直さない。各項目に **Why（なぜそうするか）／How to apply（いつ・どう使うか）／関係コミット** を付ける。新しい教訓に気づいたら report の【共有候補】に挙げ、採用されたらここへ追記する。
+
+1. **バイナリ多めのコミットで `git push` が HTTP 400（RPC failed / sideband disconnect）になる**: `git config http.postBuffer 524288000` ＋ `git config http.version HTTP/1.1` で回避できる（本リポジトリにローカル設定済み）。
+   - Why: 画像を多く含む push は HTTP/2 と既定のバッファサイズで途中切断されることがある。リポジトリやデータの問題ではない。
+   - How to apply: 画像・チラシの追加後の push が 400 で落ちたら、まず上記のローカル設定が残っているか（`git config --get http.postBuffer`）を確認する。
+   - 関係コミット: `5f21416`（初出＝§3 に記載 → 2026-09-21 に本節へ移設）
+
+2. **バックアップは「取った」で終わらせず、その場で戻せることまで確認する。git bundle はコミットの後に取る**: zip は別ディレクトリに展開してファイル名とサイズを照合、bundle は `git bundle verify` で確認する。
+   - Why: 確認して初めて「`unzip -l` の一覧表示だけ日本語が化けるが、展開すれば正常」という挙動が分かり、将来の誤った安心や無用な焦りを先に潰せた。コミット前に bundle を取ると、1つ古い履歴が控えになる。
+   - How to apply: §6【バックアップ運用】の節目に `node scripts/backup.mjs` を実行したら、復元の確認までを1セットで行う。コミットを伴う作業なら、コミットの後に実行する。
+   - 関係コミット: `446626e`
+
+3. **PDF の画像化は pdfjs-dist ＋ @napi-rs/canvas で行う（qlmanage / sips は PDF で不発）**: 定型は `node scripts/convert-pdf.mjs <入力PDF> <出力JPG> [幅] [ページ]`（§6）。
+   - Why: brew / poppler は環境に無い。macOS 標準の qlmanage・sips は PDF を正しく画像化できなかった。画像や SMask 主体の PDF は、@napi-rs/canvas（プリビルド）と pdfjs のキャンバス描画でラスタライズできた。canvas は `svg:` 接頭辞つきの SVG を読めないため、make-og では接頭辞を除去して読み込んでいる。
+   - How to apply: チラシ・手引きなどの PDF を受け取ったら、その場でワンライナーを書かずに convert-pdf.mjs を使う。
+   - 関係コミット: `962443f`
+
+4. **本番確認・画像化などは、その場のワンライナーではなく定型スクリプトに寄せる**: 本番確認は `node scripts/check-live.mjs`（接続先は自ドメインに固定し、URL やホスト名を含む引数は拒否）。
+   - Why: 都度書く `curl` やワンライナーは毎回確認プロンプトが出るうえ、接続先を取り違える余地がある。接続先を固定した定型スクリプトなら、安全に allow にでき、確認の回数も減る（判定基準は頻度ではなく「外に出るか・戻れるか」＝§6）。
+   - How to apply: 同じ種類の確認を2回書きそうになったら、定型スクリプト化を提案する（scripts/ の追加は報告に明記＝§6）。
+   - 関係コミット: `962443f`
+
+5. **GitHub のトークンの期限切れは予告なく来る — push が失敗して初めて分かる**: 2026-09-21、承認済みの push（第2段）が `fatal: could not read Username for 'https://github.com': Device not configured` で失敗した。原因は**キーチェーンに保存していた GitHub トークンの期限切れ**（同日）。オーナーが新しいトークンを発行して解決した。
+   - Why: 読み取り（`git ls-remote`・fetch）は Public リポジトリなので認証なしで通り、**書き込み（push）の時だけ**失敗する。普段の作業では気づけない。approve-push.sh は push 失敗時に通行証を残して中止するので、関所としては安全側に倒れた（本番への影響なし）。
+   - How to apply: push が認証エラーで落ちたら、AI は資格情報を調べずに状況を報告し、オーナーにトークンの状態確認を依頼する（トークンの発行・登録はオーナーの作業）。トークンは「期限なし」にするか、期限日を記録して事前に更新する。
+   - 関係コミット: `6451fa0`（このコミットの push 時に発生）
+
+6. **push関所の負テストは `git push --dry-run` で安全に行える。PreToolUse hook は確認プロンプト（ask）より先に動く**: 通行証なしの `git push --dry-run origin main` を hook がブロックすることを確認した（2026-09-21）。
+   - Why: セッションが hooks を読み込めているかは事前に保証できない。dry-run なら、hook が効いていなくてもリモートは変わらない。hook の判定は `git push` の形で行うので、条件は通常の push と同じ。また、確認プロンプトより先に hook が止めるため、オーナーが Yes を押す必要はない（当初の手順書は「Yes が必要」と誤記＝第2段 report で訂正済み）。
+   - How to apply: settings の貼り替え後やセッションの開き直し後など、関所の動作を確かめたいときは dry-run で負テストをする。hook 登録前の単体確認は、hook スクリプトに PreToolUse 相当の JSON を標準入力で渡せばよい。
+   - 関係コミット: `6451fa0`

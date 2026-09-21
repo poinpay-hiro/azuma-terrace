@@ -1,6 +1,7 @@
 // あづまテラス 検品スクリプト（自動検品ループ用）
 // 使い方: node build.js && node scripts/verify.mjs   （= npm run verify）
-// 各項目を機械判定し PASS/FAIL と理由を出力。1つでもFAILなら終了コード1。
+// 各項目を機械判定し PASS/FAIL/WARN と理由を出力。1つでもFAILなら終了コード1。
+// WARN は push を止めない（終了コード0）が、report に必ず載せる（CLAUDE.md §1）。
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,7 +16,9 @@ const IMG_EXT = /\.(jpe?g|png|svg|webp|gif|avif)$/i;
 const SIZE_WARN = 1024 * 1024; // 1MB
 const results = [];
 const warnings = []; // 非致命（終了コードに影響しない）
-function check(name, pass, detail) { results.push({ name, pass: !!pass, detail: detail || "" }); }
+function check(name, pass, detail) { results.push({ name, status: pass ? "PASS" : "FAIL", detail: detail || "" }); }
+// 非致命の検査項目（該当があっても終了コードに影響しない）。hit=true で WARN、false で PASS。
+function warnCheck(name, hit, detail) { results.push({ name, status: hit ? "WARN" : "PASS", detail: detail || "" }); }
 
 // --- helpers ---
 function listFiles(dir, base = "") {
@@ -35,7 +38,7 @@ function jsonLdBlocks(html) {
   return out;
 }
 
-// ============ 1. 6ページ存在 ============
+// ============ 1. 7ページ存在（guidelines 含む）============
 {
   const missing = REQUIRED_PAGES.filter((p) => !fs.existsSync(path.join(DIST, p + ".html")));
   check("7ページ生成(guidelines含む)", missing.length === 0, missing.length ? `不足: ${missing.join(", ")}` : `${REQUIRED_PAGES.length}ページ存在`);
@@ -315,14 +318,89 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
     missing.length ? `無し: ${missing.join(", ")}` : `${htmlPages.length}ページとも計測タグあり`);
 }
 
+// ============ 16. 秘密パターン走査（git 追跡ファイル＋ステージング中ファイルの中身）============
+// ファイル名ではなく「値の形」で検知する（#6 はファイル名ベース）。azuma に秘密は無い前提を機械的に保つ網。
+// 高シグナルな形のみ（長さ・区切りまで指定して誤検知を抑える）。バイナリ拡張子とこのスクリプト自身は除外。
+{
+  const SECRET_PATTERNS = [
+    ["GitHub token", /\bgh[pousr]_[A-Za-z0-9]{36,}\b/],
+    ["GitHub fine-grained PAT", /\bgithub_pat_[A-Za-z0-9_]{22,}/],
+    ["OpenAI/Anthropic 形式キー", /(^|[^A-Za-z0-9_-])sk-(?:proj-|ant-[a-z0-9]+-)?[A-Za-z0-9_-]{20,}/],
+    ["JWT", /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/],
+    ["AWS access key", /\bAKIA[0-9A-Z]{16}\b/],
+    ["Google API key", /\bAIza[0-9A-Za-z_-]{35}\b/],
+    ["Slack token", /\bxox[abprs]-[A-Za-z0-9-]{10,}/],
+    ["秘密鍵", /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
+  ];
+  const BINARY_EXT = /\.(jpe?g|png|gif|webp|avif|ico|pdf|woff2?|ttf|otf|zip|bundle)$/i;
+  const SELF = "scripts/verify.mjs";
+  const hits = [];
+  let scanned = 0;
+  const scan = (label, text) => {
+    scanned++;
+    for (const [kind, re] of SECRET_PATTERNS) if (re.test(text)) hits.push(`${label}: ${kind}`);
+  };
+  if (gitTracked === null) {
+    check("秘密パターン走査(追跡＋ステージング)", false, "git ls-files に失敗（走査できず）");
+  } else {
+    for (const f of gitTracked) {
+      if (f === SELF || BINARY_EXT.test(f)) continue;
+      const abs = path.join(ROOT, f);
+      if (!fs.existsSync(abs)) continue; // 作業ツリーで削除済み
+      scan(f, fs.readFileSync(abs, "utf8"));
+    }
+    // ステージング中の中身（index 側。未追跡の新規ファイルもここで捕捉）
+    for (const f of gitStaged) {
+      if (f === SELF || BINARY_EXT.test(f)) continue;
+      let text;
+      try { text = execSync(`git show ":${f}"`, { cwd: ROOT, stdio: ["ignore", "pipe", "ignore"] }).toString(); } catch { continue; } // 削除のステージング
+      scan(`(staged) ${f}`, text);
+    }
+    // 値そのものは出力しない（ファイル名と種類のみ）
+    check("秘密パターン走査(追跡＋ステージング)", hits.length === 0,
+      hits.length ? hits.slice(0, 8).join(" / ") : `${scanned}ファイルに秘密パターンなし`);
+  }
+}
+
+// ============ 17. 個人携帯番号の検知（data/*.json・WARN）============
+// 090/080/070 で始まる番号は個人携帯の可能性（CLAUDE.md §4-2：個人携帯はリポジトリに入れない）。
+// 店舗の代表番号として正当なものは MOBILE_ALLOWLIST に「店舗ID: 根拠」で登録する。
+// ⚠️ allowlist への追加は裁定事項（勝手に追加しない。追加＝その番号の公開を容認すること）。
+// 出力には番号そのものを出さない（店舗IDと項目名のみ）。
+{
+  const MOBILE_ALLOWLIST = {
+    // "shop-id": "根拠（例: 提出書類で店舗代表番号と確認・YYYY-MM-DD 裁定）",
+  };
+  const MOBILE_RE = /(^|[^0-9])0[789]0[-\s]?\d{4}[-\s]?\d{4}(?![0-9])/;
+  const found = [];
+  for (const f of fs.readdirSync(DATA).filter((x) => x.endsWith(".json"))) {
+    const walk = (o, p, id) => {
+      if (typeof o === "string") {
+        if (MOBILE_RE.test(o) && !(id && MOBILE_ALLOWLIST[id])) found.push(`${f}:${id || "-"}(${p.replace(/^\./, "").replace(/^\d+\./, "")})`);
+      } else if (o && typeof o === "object") {
+        const nid = typeof o.id === "string" ? o.id : id;
+        for (const k of Object.keys(o)) walk(o[k], `${p}.${k}`, nid);
+      }
+    };
+    walk(JSON.parse(fs.readFileSync(path.join(DATA, f), "utf8")), "", null);
+  }
+  const allowed = Object.keys(MOBILE_ALLOWLIST).length;
+  warnCheck("個人携帯番号の検知(data/*.json)", found.length > 0,
+    found.length
+      ? `携帯形式の番号 ${found.length}件（allowlist外・要裁定）: ${found.join(", ")}`
+      : `該当なし（allowlist ${allowed}件）`);
+}
+
 // ============ 出力 ============
 const pad = Math.max(...results.map((r) => r.name.length));
+const TAG = { PASS: "PASS ✓", FAIL: "FAIL ✗", WARN: "WARN △" };
 let failed = 0;
+let warned = 0;
 console.log("── 検品結果 (verify.mjs) ──");
 for (const r of results) {
-  if (!r.pass) failed++;
-  const tag = r.pass ? "PASS ✓" : "FAIL ✗";
-  console.log(`${tag}  ${r.name.padEnd(pad)}  ${r.detail}`);
+  if (r.status === "FAIL") failed++;
+  if (r.status === "WARN") warned++;
+  console.log(`${TAG[r.status]}  ${r.name.padEnd(pad)}  ${r.detail}`);
 }
 console.log("──────────────────────────");
 if (warnings.length) {
@@ -330,5 +408,7 @@ if (warnings.length) {
   for (const w of warnings) console.log(`  WARN △  ${w}`);
   console.log("──────────────────────────");
 }
-if (failed) { console.log(`結果: ${results.length - failed}/${results.length} PASS, ${failed} FAIL → 終了コード1`); process.exit(1); }
-console.log(`結果: 全 ${results.length} 項目 PASS${warnings.length ? `（警告${warnings.length}件・終了コードには非影響）` : ""}`);
+const passed = results.length - failed - warned;
+const warnNote = warned || warnings.length ? `（WARN ${warned}項目・警告${warnings.length}件は終了コードに非影響。report に必ず記載）` : "";
+if (failed) { console.log(`結果: ${results.length}項目中 PASS ${passed}・WARN ${warned}・FAIL ${failed} → 終了コード1`); process.exit(1); }
+console.log(warned ? `結果: ${results.length}項目中 PASS ${passed}・WARN ${warned}・FAIL 0${warnNote}` : `結果: 全 ${results.length} 項目 PASS${warnNote}`);
