@@ -90,6 +90,7 @@
   3. push関所（§3）は不変。受信箱は報告の経路を変えるだけで、検分・承認・push の順序には触れない。
 - **返し**: 作業完了時に、report 本文（`report-azuma.md` と同内容）を `ops_reports` に INSERT（`order_id`＝該当指示の id・`team='azuma'`）→ 該当する `ops_orders.status` を `'reported'` に UPDATE。**`report-azuma.md` への出力も予備として併記を続ける**（往復が不調でも報告が消えないように）。
   - **push 完了時**も、結果（成功／失敗・push した SHA・ローカル=リモート一致）を3行程度で `ops_reports` に INSERT する（同じ order_id）。
+  - **要約の提示や質問・裁定依頼で止まるときも**、その内容を短く `ops_reports` に INSERT する（同じ order_id。**`ops_orders.status` は `'open'` のまま**＝作業は未完了のため）。司令塔が添付なしで「どこで止まっているか」を読めるようにするため（司令塔採用・オーナー承認 2026-09-26。正本は coupon-site `docs/PROJECT_INSTRUCTIONS.md`、ここは当てはめのみ）。
 - **読み取りは承認不要、書き込み（INSERT／UPDATE）は毎回オーナー承認**。`execute_sql` を常時 allow にする設定はしない（書き込みもできるツールのため）。
 - **`ops_reports` の本文に個人情報（氏名・個人携帯・住所等）を書かない**（report-azuma.md と同じ基準）。
 

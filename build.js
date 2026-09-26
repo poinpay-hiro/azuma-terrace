@@ -46,8 +46,39 @@ function displayStatus(e) {
   if (e.dateStart <= BUILD_DATE_JST) return "ongoing";
   return "upcoming";
 }
+// 画像の寸法（px）をファイルのヘッダから読む（Node 標準のみ・JPEG と PNG に対応）。
+// イベントカードの <img width/height> を画像ごとに正しく出すため（固定値の撤廃・ops_orders id=22）。
+// 読めない場合は build を止める（寸法の誤った img を黙って出さない）。
+function readImageSize(file) {
+  const b = fs.readFileSync(file);
+  if (b.length > 24 && b.readUInt32BE(0) === 0x89504e47) return { width: b.readUInt32BE(16), height: b.readUInt32BE(20) }; // PNG IHDR
+  if (b[0] === 0xff && b[1] === 0xd8) { // JPEG: SOFn マーカー（C4/C8/CC 以外の C0〜CF）の高さ・幅を読む
+    let i = 2;
+    while (i + 9 < b.length) {
+      if (b[i] !== 0xff) { i++; continue; }
+      const marker = b[i + 1];
+      if (marker === 0xff) { i++; continue; }
+      if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) { i += 2; continue; }
+      const len = b.readUInt16BE(i + 2);
+      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+        return { width: b.readUInt16BE(i + 7), height: b.readUInt16BE(i + 5) };
+      }
+      i += 2 + len;
+    }
+  }
+  throw new Error(`画像の寸法を読めません: ${path.relative(ROOT, file)}`);
+}
+
 // 以降のページ生成（カード・JSON-LD・並べ替え）はすべて判定後の status を使う。data の status は参照しない。
-const events = readJSON("events.json").map((e) => ({ ...e, status: displayStatus(e) }));
+const events = readJSON("events.json").map((e) => {
+  const out = { ...e, status: displayStatus(e) };
+  if (e.image) {
+    const { width, height } = readImageSize(path.join(ASSETS, "events", e.image));
+    out.imageWidth = width;
+    out.imageHeight = height;
+  }
+  return out;
+});
 const SC = C.shoppingCenterJsonLd(site);
 
 // ---- 共通パーツ ----
@@ -200,7 +231,13 @@ function pageEvents() {
 ${lineCta()}
 `;
   const jsonld = [SC, ...events.map((e) => C.eventJsonLd(e, site))];
-  return layout({ title: "イベント", description: `${site.name}のイベント情報。とうもろこしまつり2026（8月2日）や梅まつり・ハロウィンなど地域のイベントをお知らせします。`, active: "events.html", jsonld, content }, site);
+  // meta description はビルド時に生成する（終了済みのイベント名を固定文言で残さない・ops_orders id=22）。
+  //  開催予定/開催中があればその名前と日付を、無ければ日付に依存しない汎用文を使う。
+  const fmtWhen = (e) => (e.dateStart === e.dateEnd ? C.fmtDate(e.dateStart) : `${C.fmtDate(e.dateStart)}〜${C.fmtDate(e.dateEnd)}`);
+  const description = upcoming.length
+    ? `${site.name}（${site.alternateName}）のイベント情報。開催予定：${upcoming.map((e) => `${e.title}（${fmtWhen(e)}）`).join("、")}。これまでに開催したイベントもご覧いただけます。`
+    : `${site.name}（${site.alternateName}）のイベント・お知らせ一覧。これまでに開催したイベントもご覧いただけます。`;
+  return layout({ title: "イベント", description, active: "events.html", jsonld, content }, site);
 }
 
 function groupedShops(list, groupFn, groups) {

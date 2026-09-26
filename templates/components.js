@@ -115,7 +115,7 @@ function eventCard(e) {
   const when = e.dateStart === e.dateEnd ? fmtDate(e.dateStart) : `${fmtDate(e.dateStart)}〜${fmtDate(e.dateEnd)}`;
   const timeLine = e.timeNote ? `\n  <p class="when time">${esc(e.timeNote)}</p>` : "";
   const flyer = e.image
-    ? `\n  <a class="event-flyer" href="assets/events/${esc(e.image)}" target="_blank" rel="noopener" title="チラシを原寸で開く"><img src="assets/events/${esc(e.image)}" width="1200" height="1683" loading="lazy" alt="${esc(e.title)}のチラシ"></a>`
+    ? `\n  <a class="event-flyer" href="assets/events/${esc(e.image)}" target="_blank" rel="noopener" title="チラシを原寸で開く"><img src="assets/events/${esc(e.image)}" width="${Number(e.imageWidth)}" height="${Number(e.imageHeight)}" loading="lazy" alt="${esc(e.title)}のチラシ"></a>`
     : "";
   return `<article class="event" id="${esc(e.id)}">
   <span class="badge ${esc(e.status)}">${label}</span>
