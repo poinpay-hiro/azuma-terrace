@@ -1,7 +1,7 @@
 // OGP画像・favicon 生成（定型・固定処理）。ローカル処理のみ・ネットワーク接続なし・コマンドライン引数なし。
 // 生成物（assets/ に出力。build.js が dist へ配置）:
 //   assets/og/og-default.jpg   1200x630  … ベージュ地＋ロゴ（ロックアップ）＋下部テキスト
-//   assets/og/og-events.jpg    1200x630  … とうもろこしまつり2026チラシをレターボックス配置（無加工）
+//   assets/og/og-events.jpg    1200x630  … 最新イベントのチラシ（下の EVENTS_OG_FLYER）をレターボックス配置（無加工）
 //   assets/favicon.ico         32x32     … ロゴマークのシンボル部分（右クラスタ）
 //   assets/apple-touch-icon.png 180x180  … 同シンボル・ベージュ地
 // 注: ロゴは変形・色変更・装飾付加を行わない（トリミング＝シンボル部分の抽出とレターボックスのみ）。
@@ -17,6 +17,11 @@ const ASSETS = path.join(ROOT, "assets");
 const OG_DIR = path.join(ASSETS, "og");
 const BEIGE = "#fbf7f0";
 const INK = "#3a3a34";
+
+// og-events.jpg の生成元チラシ（assets/events/ 内のファイル名）。
+// イベントの告知を強化するときは、ここだけを最新イベントのチラシに差し替えて再生成する（CLAUDE.md §6）。
+// 履歴: corn2026.jpg（2026-07）→ halloween2026.jpg（2026-09-26・ops_orders id=20）
+const EVENTS_OG_FLYER = "halloween2026.jpg";
 
 // 日本語フォント登録（macOS。存在する最初のものを使う）
 const JP_FONTS = [
@@ -56,7 +61,7 @@ async function makeOgEvents() {
   const W = 1200, H = 630;
   const cv = createCanvas(W, H); const c = cv.getContext("2d");
   c.fillStyle = BEIGE; c.fillRect(0, 0, W, H);
-  const flyer = await loadImage(path.join(ASSETS, "events", "corn2026.jpg")); // 縦長ポスター
+  const flyer = await loadImage(path.join(ASSETS, "events", EVENTS_OG_FLYER)); // 縦長ポスター
   const targetH = 606; // 上下に少し余白
   const dh = targetH, dw = dh * flyer.width / flyer.height; // アスペクト維持（レターボックス）
   c.drawImage(flyer, (W - dw) / 2, (H - dh) / 2, dw, dh);

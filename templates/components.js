@@ -154,6 +154,7 @@ function eventJsonLd(e, site) {
     organizer: { "@type": "Organization", name: site.name },
   };
   if (e.image) obj.image = `https://www.azuma-terrace.com/assets/events/${e.image}`;
+  if (typeof e.isAccessibleForFree === "boolean") obj.isAccessibleForFree = e.isAccessibleForFree;
   return obj;
 }
 

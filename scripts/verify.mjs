@@ -14,6 +14,8 @@ const DATA = path.join(ROOT, "data");
 const REQUIRED_PAGES = ["index", "events", "shops", "medical", "access", "guidelines", "about"];
 const IMG_EXT = /\.(jpe?g|png|svg|webp|gif|avif)$/i;
 const SIZE_WARN = 1024 * 1024; // 1MB
+// ビルド日（日本時間）。build.js のイベント状態判定と同じ式（UTC+9 の日付）。#11・#18 で使う。
+const BUILD_DATE_JST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 const results = [];
 const warnings = []; // 非致命（終了コードに影響しない）
 function check(name, pass, detail) { results.push({ name, status: pass ? "PASS" : "FAIL", detail: detail || "" }); }
@@ -229,11 +231,15 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
 }
 
 // ============ 11. events.html「これまでの開催」が dateStart 降順で並んでいる ============
+// 期待値の「過去」は data の status ではなく日付で決める（build.js と同じ判定・CLAUDE.md §5 2026-09-26 裁定）。
+//   dateEnd（無ければ dateStart）< ビルド日(JST) のイベントが、過不足なく dateStart 降順で並んでいること。
+//   ⚠️ 旧実装は data の status==="past" で期待値を作っていたため、日付判定の導入後は「data を直さずに push」で
+//      表示は正しいのに FAIL していた（2026-09-26 に日付判定へ揃えた。検査の対象・厳しさは変えていない）。
 {
   let events = [];
   try { events = JSON.parse(fs.readFileSync(path.join(DATA, "events.json"), "utf8")); } catch (e) {}
   const expected = events
-    .filter((e) => e.status === "past")
+    .filter((e) => (e.dateEnd || e.dateStart) < BUILD_DATE_JST)
     .slice()
     .sort((a, b) => (a.dateStart < b.dateStart ? 1 : a.dateStart > b.dateStart ? -1 : 0))
     .map((e) => e.title);
@@ -390,6 +396,21 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
     found.length
       ? `携帯形式の番号 ${found.length}件（allowlist外・要裁定）: ${found.join(", ")}`
       : `該当なし（allowlist ${allowed}件）`);
+}
+
+// ============ 18. イベント data の status と日付の食い違い（WARN）============
+// 表示上の状態は build.js が日付（日本時間のビルド日）で自動判定する（CLAUDE.md §5・2026-09-26 裁定）。
+// data の status は表示に使われないが、残したまま古くなると読み手（人・AI）を誤らせるため、
+// 「status=upcoming なのに dateEnd（無ければ dateStart）がビルド日より前」を WARN で知らせる（FAIL にはしない）。
+// ビルド日は冒頭の BUILD_DATE_JST（build.js と同じ式）。
+{
+  let evs = [];
+  try { evs = JSON.parse(fs.readFileSync(path.join(DATA, "events.json"), "utf8")); } catch (e) {}
+  const stale = evs.filter((e) => e.status === "upcoming" && (e.dateEnd || e.dateStart) < BUILD_DATE_JST);
+  warnCheck("イベント status と日付の整合(upcomingなのに終了済み)", stale.length > 0,
+    stale.length
+      ? `ビルド日(JST) ${BUILD_DATE_JST} より前に終了しているのに status=upcoming: ${stale.map((e) => `${e.id}(${e.dateEnd || e.dateStart})`).join(", ")}（表示は日付判定で過去扱い済み。data の status を past に直すと解消）`
+      : `該当なし（${evs.length}件・ビルド日(JST) ${BUILD_DATE_JST}）`);
 }
 
 // ============ 出力 ============

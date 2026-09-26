@@ -34,7 +34,20 @@ function copyDir(src, dest) {
 
 const site = readJSON("site.json");
 const shops = readJSON("shops.json");
-const events = readJSON("events.json");
+// イベントの表示上の状態（開催予定/開催中/過去）は、data の status ではなく
+// 「ビルド日（日本時間）と dateStart / dateEnd の比較」で決める（CLAUDE.md §5・2026-09-26 オーナー裁定）。
+//   dateEnd（無ければ dateStart）< ビルド日 → past ／ dateStart ≦ ビルド日 → ongoing ／ それ以外 → upcoming
+// Vercel のビルドは UTC で動くため、UTC+9 に寄せてから日付を取る（日本時間の朝9時前に前日扱いになるのを防ぐ）。
+// 判定はビルド時点で固定される＝終了したイベントは次の push（再ビルド）で自動的に過去へ移る。
+const BUILD_DATE_JST = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+function displayStatus(e) {
+  const end = e.dateEnd || e.dateStart;
+  if (end < BUILD_DATE_JST) return "past";
+  if (e.dateStart <= BUILD_DATE_JST) return "ongoing";
+  return "upcoming";
+}
+// 以降のページ生成（カード・JSON-LD・並べ替え）はすべて判定後の status を使う。data の status は参照しない。
+const events = readJSON("events.json").map((e) => ({ ...e, status: displayStatus(e) }));
 const SC = C.shoppingCenterJsonLd(site);
 
 // ---- 共通パーツ ----
@@ -372,6 +385,7 @@ function build() {
   console.log(`✓ built ${Object.keys(pages).length} pages -> dist/`);
   console.log(`✓ copied ${n} asset file(s), styles.css`);
   console.log("  pages: " + Object.keys(pages).join(", "));
+  console.log(`  events: ビルド日(JST) ${BUILD_DATE_JST} で判定 → ` + events.map((e) => `${e.id}=${e.status}`).join(", "));
 }
 
 build();
