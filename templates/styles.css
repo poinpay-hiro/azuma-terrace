@@ -175,6 +175,7 @@ section.block { padding: 26px 0; }
 .cat-group.buy > h3.cat-title { background: var(--blue); }
 .cat-group.service > h3.cat-title { background: var(--yellow); color: var(--ink); }
 .cat-group.pharmacy > h3.cat-title { background: var(--pink); }
+.cat-group.care > h3.cat-title { background: var(--blue); }
 
 /* ---- イベント ---- */
 .event {

@@ -6,11 +6,12 @@ const SCHEMA_TYPE = {
   "そば": "Restaurant", "洋食": "Restaurant", "食堂": "Restaurant",
   "中華": "Restaurant", "焼肉": "Restaurant", "ステーキ": "Restaurant",
   "天ぷら・うどん": "Restaurant", "居酒屋": "Restaurant", "唐揚げ持ち帰り": "Restaurant",
+  "小籠包・台湾料理": "Restaurant", "タコス・スタンディングバー": "BarOrPub", "弁当": "FoodEstablishment",
   "パン": "Bakery",
   "カフェ": "CafeOrCoffeeShop", "喫茶店": "CafeOrCoffeeShop",
   "スーパー": "GroceryStore",
   "コンビニ": "ConvenienceStore",
-  "駄菓子": "Store", "青果": "Store", "ドラッグストア": "Store",
+  "駄菓子": "Store", "青果": "Store", "ドラッグストア": "Store", "金属スクラップ買取": "Store",
   "理髪店": "HairSalon",
   "クリーニング": "DryCleaningOrLaundry",
   "ガソリンスタンド": "GasStation",
@@ -22,10 +23,11 @@ const SCHEMA_TYPE = {
   "薬局": "Pharmacy",
   "診療所": "MedicalClinic", "医院": "MedicalClinic", "クリニック": "MedicalClinic",
   "整骨院": "MedicalBusiness",
+  "高齢者福祉施設": "LocalBusiness", // schema.org に適切な福祉施設の型が無いため（ops_orders id=27）
 };
 
 // 一般店舗のグルーピング（shops.html）
-const EAT = ["そば","洋食","食堂","中華","焼肉","ステーキ","天ぷら・うどん","居酒屋","唐揚げ持ち帰り","パン","カフェ","喫茶店"];
+const EAT = ["そば","洋食","食堂","中華","焼肉","ステーキ","天ぷら・うどん","居酒屋","唐揚げ持ち帰り","パン","カフェ","喫茶店","小籠包・台湾料理","タコス・スタンディングバー","弁当"];
 const BUY = ["スーパー","コンビニ","駄菓子","青果","ドラッグストア"];
 function shopGroup(genre) {
   if (EAT.includes(genre)) return "eat";
@@ -34,7 +36,9 @@ function shopGroup(genre) {
 }
 
 // 医療のグルーピング（medical.html）
+const CARE = ["高齢者福祉施設"]; // 介護・福祉（2026-10-09 新設）
 function medicalGroup(genre) {
+  if (CARE.includes(genre)) return "care";
   return genre === "薬局" ? "pharmacy" : "clinic";
 }
 

@@ -11,7 +11,7 @@
 ```
 data/           サイトデータ
   site.json     サイト基本情報
-  shops.json    全41店（shop 32 / medical 9）
+  shops.json    店舗・医療・介護福祉（件数は build 時にデータから算出。旧記載「全41店」は 2026-10-09 に廃止）
   events.json   イベント
 templates/      レイアウト・部品・共通CSS
   layout.js     <head>・ヘッダー・フッター

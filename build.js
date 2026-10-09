@@ -277,6 +277,7 @@ function pageMedical() {
   const grouped = groupedShops(list, C.medicalGroup, [
     { key: "clinic", title: "診療（歯科・医院・整骨院など）", cls: "" },
     { key: "pharmacy", title: "薬局", cls: "pharmacy" },
+    { key: "care", title: "介護・福祉", cls: "care" },
   ]);
   const content = `
 <section class="block"><div class="container">
@@ -287,7 +288,7 @@ function pageMedical() {
 ${lineCta()}
 `;
   const jsonld = [SC, ...list.map((s) => C.shopJsonLd(s, site))];
-  return layout({ title: "医療・健康", description: `あづまテラス（${site.name}）周辺の医療・健康施設${list.length}件。歯科・医院・整骨院・薬局を紹介。`, active: "medical.html", jsonld, content }, site);
+  return layout({ title: "医療・健康", description: `あづまテラス（${site.name}）周辺の医療・健康・介護福祉施設${list.length}件。歯科・医院・整骨院・薬局・介護福祉施設を紹介。`, active: "medical.html", jsonld, content }, site);
 }
 
 function pageAccess() {
