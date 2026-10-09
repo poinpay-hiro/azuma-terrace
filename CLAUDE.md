@@ -24,7 +24,7 @@
 ### 実行するもの
 - 検品スクリプト: `scripts/verify.mjs`（1ファイルに集約）。`npm run verify`（= `node build.js && node scripts/verify.mjs`）で実行。
 - 判定は **PASS / FAIL / WARN** の3段階。**1つでも FAIL なら終了コード1**。**WARN は push を止めない（終了コード0）が、report に必ず載せる**（該当内容と、裁定が要るかどうか）。項目7の「画像1MB超」も同じく非致命の警告として出力される。
-- 検品項目（全19項目・2026-10-09 時点）:
+- 検品項目（全20項目・2026-10-09 時点）:
   1. `dist/` に **基本7ページ**（index/events/shops/medical/access/guidelines/about）＋**参加店一覧ページ**（`data/campaigns.json` の slug ごと・2026-10-09 追加）が存在
   2. 全ページの内部リンク切れゼロ（assets含む。Vercel 計測タグのパス1本のみ除外＝§6）
   3. 全 JSON-LD ブロックがパース成功
@@ -44,6 +44,7 @@
   17. **個人携帯番号の検知**（WARN）: `data/*.json` の 090/080/070 で始まる番号。店舗の代表番号として正当なものは verify.mjs の `MOBILE_ALLOWLIST` に「店舗ID: 根拠」で登録する。**allowlist への追加は裁定事項**（勝手に追加しない。出力に番号そのものは出さない）
   18. **イベント status と日付の整合**（WARN）: `data/events.json` で `status=upcoming` なのに dateEnd（無ければ dateStart）がビルド日（日本時間）より前のイベントを知らせる。表示は日付判定（§5）で正しく過去扱いになるので push は止めないが、data の status を `past` に直すと解消する
   19. **参加店一覧の shopId 参照**（FAIL）: `data/campaigns.json` の各参加店の `shopId` が `shops.json` に全件存在し、同じ一覧の中で重複していない（参照切れ＝載るはずの店が載らない事故を防ぐ・2026-10-09 追加）
+  20. **参加店一覧の商品券利用期間の形式と前後**（FAIL）: `data/campaigns.json` の `voucherFrom`（日付または `YYYY-MM-DDTHH:MM+09:00`）と `voucherUntil`（日付）がそろっていて、形式が正しく、期限が開始より後である（期限後の自動切り替えが働く前提を守る・2026-10-09 追加）
 - ⚠️旧記述の訂正（2026-09-21・体制同期案件 第3段）: 本節の検品項目は長く次の記載のままで、verify.mjs の実態（15項目）と食い違っていた。
   - ~~検品項目（1つでもFAILなら終了コード1）: 1〜6 の6項目~~ → 実態は 15項目（項目7〜15 は 2026-07〜08 に追加されたが文書に反映されていなかった）。今回 16・17 を加えて **17項目**。
   - ~~1. `dist/` に6ページ（index/events/shops/medical/access/about）が存在~~ → 7ページ（guidelines 含む）。
@@ -146,6 +147,7 @@
 - **【司令塔条件】ネットワークを触る scripts は接続先を固定する**: 接続先は自ドメイン（www.azuma-terrace.com / azuma-terrace.com）と localhost のみをコード内定数で持ち、**任意URL/ホスト名を引数・環境変数で受け付けない**。`check-live.mjs` は検索文字列のみ引数で受け、`/` や `http` を含む引数はエラー終了する防御を実装済み。
 - **`scripts/` 配下の追加・変更は、コミット報告に必ず明記する（`verify.mjs` と同格の扱い）。** 検品を弱める変更は事前承認必須（§1）。
 - **【計測タグ】全ページに Vercel Web Analytics の `<script defer src="/_vercel/insights/script.js">` を出力する（`templates/layout.js`）。このパスは Vercel 本番環境が自動配信するため `dist/` には存在せず、ローカルプレビューでは 404 になるが正常・無害。** verify は内部リンク検査からこの1本のみ除外し、代わりに「全ページに計測タグが存在する」を検査する。
+- **【日付で切り替わる表示は、日付を過ぎたら Vercel で Redeploy を1回】**（2026-10-09 オーナー裁定）: イベントの「開催予定→これまでの開催」「終了しました」（§5）と、参加店一覧の「デジタル商品券の利用期間は終了しました」は、**どれもビルド時点の日付（日本時間）で決まる**。push が無いと切り替わらないため、**切り替え日を過ぎたら、オーナーが Vercel で Redeploy を1回行う**（その前に別の更新を push していれば不要）。直近の切り替え日：ハロウィン2026 のイベント終了＝**2026-10-19**、デジタル商品券の利用期限切れ＝**2026-12-01**。
 - **【バックアップ運用】節目に `node scripts/backup.mjs` を実行する（自動化しない）。** 節目＝**①デザイン資産の新規受領時 ②イベントチラシ追加時 ③ドメイン/Vercel設定の変更時**。保存先は **`~/Dropbox/azuma-backups/`（日付つきファイル名）**。出力は `azuma-assets_YYYY-MM-DD.zip`（原本PDF一式。`*.pdf` は .gitignore のため**gitに載らない＝zipが唯一の控え**）／`azuma-terrace_repo_YYYY-MM-DD.bundle`（git全履歴）／`claude-settings_YYYY-MM-DD.json`。**設定記録 `azuma-settings_YYYY-MM-DD.md`（ドメイン・DNS・Vercel等の手書き記録）は、設定変更のたびに既存を編集せず新しい日付で作り直す**（履歴を残すため）。日次・cron等での自動化はしない（データ本体はgitに載るため節目取得で足りる）。`backup.mjs` は**ネットワークに接続せず**、入出力パスをコード内定数に固定して引数を受け付けない（§6の接続先固定と同じ思想）。
 - **【ask計測】ask（確認）が発生したコマンドは、`~/Downloads/report-azuma.md` 末尾に「ask発生ログ」として毎回列挙する（種別と回数）。** ただし**許可申請の判定基準は頻度ではなく「外に出るか・戻れるか」**（＝push・外部送信・削除等の不可逆/外向き操作は、たとえ低頻度でも確認を残す。逆に高頻度でも read-only なら allow 化してよい）。司令塔注意（2026-07）。
 

@@ -85,6 +85,9 @@ const campaigns = readJSON("campaigns.json").map((c) => {
       isNew: c.participants.filter((p) => p.isNew).length,
     },
     ended: c.period.end < BUILD_DATE_JST, // 期間を過ぎたら冒頭に「終了しました」を自動表示
+    // デジタル商品券の利用期限（voucherUntil・日付）。日本時間のビルド日が過ぎたら注記を「終了しました」に切り替える。
+    // イベント本体の ended とは独立に判定する（2026-10-09 オーナー裁定・ops_orders id=29）。
+    voucherEnded: c.voucherUntil ? c.voucherUntil < BUILD_DATE_JST : false,
   };
 });
 
@@ -274,6 +277,21 @@ function pageCampaign(c) {
   const ended = c.ended
     ? `<p class="camp-ended">このイベントは終了しました（${esc(C.fmtDate(c.period.end))}開催）。</p>`
     : "";
+  // デジタル商品券の利用期間（日付・時刻は campaigns.json の voucherFrom / voucherUntil から組み立てる。固定文言に書かない）
+  const md = (iso) => { const [, m, d] = iso.slice(0, 10).split("-").map(Number); return { m, d }; };
+  let voucherPeriod = "", voucherNote = "";
+  if (c.voucherFrom && c.voucherUntil) {
+    const f = md(c.voucherFrom), u = md(c.voucherUntil);
+    const fromTime = c.voucherFrom.length > 10 ? c.voucherFrom.slice(11, 16) : "";
+    const fromDay = c.voucherFrom.slice(0, 10), untilDay = c.voucherUntil;
+    if (c.voucherEnded) {
+      voucherPeriod = `<p class="camp-voucher ended">デジタル商品券の利用期間は終了しました（〜${esc(C.fmtDate(untilDay))}）</p>`;
+      voucherNote = `<p class="camp-note">※デジタル商品券の利用期間は終了しました（〜${esc(C.fmtDate(untilDay))}）</p>`;
+    } else {
+      voucherPeriod = `<p class="camp-voucher">商品券の利用期間：<b>${f.m}/${f.d}${fromTime ? " " + esc(fromTime) : ""}〜${u.m}/${u.d}</b></p>`;
+      voucherNote = `<p class="camp-note">※デジタル商品券はガラポン抽選の景品です。${f.m}月${f.d}日（${dayOf(fromDay)}）${fromTime ? esc(fromTime) : ""}から${u.m}月${u.d}日（${dayOf(untilDay)}）まで、上記の取扱店でご利用いただけます（当日の会場ではご利用いただけません）</p>`;
+    }
+  }
   const mark = (on, label) => `<span class="camp-mark ${on ? "on" : "off"}">${esc(label)}<b>${on ? "○" : "—"}</b><span class="sr">${on ? "対象" : "対象外"}</span></span>`;
   const cards = c.entries.map(({ shop: s, stampRally, voucher, isNew }) => {
     const href = `${s.category === "medical" ? "medical" : "shops"}.html#${s.id}`;
@@ -296,8 +314,10 @@ function pageCampaign(c) {
     <div class="camp-stat"><b>${c.counts.voucher}</b><span>デジタル商品券取扱店</span></div>
     <div class="camp-stat"><b>${c.counts.isNew}</b><span>新規参加店</span></div>
   </div>
+  ${voucherPeriod}
   <p class="camp-legend">○＝対象　—＝対象外　<span class="camp-new">NEW</span>＝今回から参加</p>
   <div class="grid">${cards}</div>
+  ${voucherNote}
   ${(c.notes || []).map((n) => `<p class="camp-note">※${esc(n)}</p>`).join("\n  ")}
 </div></section>
 ${lineCta()}

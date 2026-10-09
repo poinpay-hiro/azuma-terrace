@@ -189,6 +189,9 @@ section.block { padding: 26px 0; }
 .camp-stat b { display: block; font-size: 1.6rem; color: var(--green-dark); line-height: 1.2; }
 .camp-stat span { display: block; font-size: .74rem; color: var(--ink-soft); }
 .camp-legend { font-size: .82rem; color: var(--ink-soft); margin: 0 0 12px; }
+.camp-voucher { background: var(--yellow); color: var(--ink); font-weight: 700; text-align: center; border-radius: 10px; padding: 8px 12px; margin: 0 0 12px; }
+.camp-voucher b { font-size: 1.05rem; }
+.camp-voucher.ended { background: #efe7d7; color: var(--ink-soft); }
 .camp-card h3 a { color: var(--ink); text-decoration: none; }
 .camp-marks { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 6px; }
 .camp-mark { display: inline-flex; align-items: center; gap: 4px; font-size: .8rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }

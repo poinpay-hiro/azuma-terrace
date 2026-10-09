@@ -4,9 +4,9 @@
     "title": "2026 あづまテラスのハロウィン スタンプラリー 参加店舗・デジタル商品券取扱店",
     "eventId": "halloween-2026",
     "period": { "start": "2026-10-18", "end": "2026-10-18" },
-    "notes": [
-      "デジタル商品券はガラポン抽選の景品です。10月18日（日）18:00以降、上記の取扱店でご利用いただけます（当日の会場ではご利用いただけません）"
-    ],
+    "voucherFrom": "2026-10-18T18:00:00+09:00",
+    "voucherUntil": "2026-11-30",
+    "notes": [],
     "participants": [
       { "shopId": "mona", "stampRally": true, "voucher": false, "isNew": false },
       { "shopId": "kitchen-tani", "stampRally": true, "voucher": true, "isNew": false },

@@ -442,6 +442,27 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
     problems.length ? problems.slice(0, 8).join(" / ") : `${(CAMPAIGNS || []).length}件の一覧・${n}店すべて shops.json に存在・重複なし`);
 }
 
+// ============ 20. 参加店一覧のデジタル商品券の利用期間（voucherFrom / voucherUntil）の形式と前後関係 ============
+// 期限はデータで持ち、表示（期間の表示・期限後の「終了しました」）は build 時に組み立てる（2026-10-09 オーナー裁定・ops_orders id=29）。
+// 形式が崩れると期限後の切り替えが働かないため FAIL。片方だけの記載も FAIL。どちらも無い一覧は対象外。
+{
+  const problems = [];
+  const DATE = /^\d{4}-\d{2}-\d{2}$/;
+  const DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?\+09:00$/;
+  let n = 0;
+  for (const c of CAMPAIGNS || []) {
+    const has = [c.voucherFrom, c.voucherUntil].filter((v) => v !== undefined && v !== null).length;
+    if (has === 0) continue;
+    n++;
+    if (has === 1) { problems.push(`${c.slug}: voucherFrom と voucherUntil の片方だけ`); continue; }
+    if (!(DATE.test(c.voucherFrom) || DATETIME.test(c.voucherFrom))) problems.push(`${c.slug}: voucherFrom の形式（YYYY-MM-DD か YYYY-MM-DDTHH:MM+09:00）`);
+    if (!DATE.test(c.voucherUntil)) problems.push(`${c.slug}: voucherUntil の形式（YYYY-MM-DD）`);
+    else if (!(c.voucherUntil > String(c.voucherFrom).slice(0, 10))) problems.push(`${c.slug}: voucherUntil（${c.voucherUntil}）が voucherFrom より後でない`);
+  }
+  check("参加店一覧の商品券利用期間(voucherFrom/Until)の形式と前後", problems.length === 0,
+    problems.length ? problems.join(" / ") : n ? `${n}件の一覧で形式OK・期限が開始より後` : "該当なし（利用期間の記載なし）");
+}
+
 // ============ 出力 ============
 const pad = Math.max(...results.map((r) => r.name.length));
 const TAG = { PASS: "PASS ✓", FAIL: "FAIL ✗", WARN: "WARN △" };
