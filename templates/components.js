@@ -126,7 +126,7 @@ function eventCard(e) {
   <h3>${esc(e.title)}</h3>
   <p class="when">${esc(when)}</p>${timeLine}
   <p class="where">会場：${esc(e.venue)}</p>
-  <p>${esc(e.body || e.summary)}</p>${flyer}
+  <p>${esc(e.body || e.summary)}</p>${e.campaignLink ? `\n  <p class="camp-link"><a href="${esc(e.campaignLink.href)}">${esc(e.campaignLink.label)} →</a></p>` : ""}${flyer}
 </article>`;
 }
 

@@ -1,0 +1,35 @@
+[
+  {
+    "slug": "halloween2026",
+    "title": "2026 あづまテラスのハロウィン スタンプラリー 参加店舗・デジタル商品券取扱店",
+    "eventId": "halloween-2026",
+    "period": { "start": "2026-10-18", "end": "2026-10-18" },
+    "notes": [
+      "デジタル商品券はガラポン抽選の景品です。10月18日（日）18:00以降、上記の取扱店でご利用いただけます（当日の会場ではご利用いただけません）"
+    ],
+    "participants": [
+      { "shopId": "mona", "stampRally": true, "voucher": false, "isNew": false },
+      { "shopId": "kitchen-tani", "stampRally": true, "voucher": true, "isNew": false },
+      { "shopId": "uogin-stand", "stampRally": true, "voucher": true, "isNew": false },
+      { "shopId": "uzu-shokudo", "stampRally": true, "voucher": true, "isNew": false },
+      { "shopId": "canary", "stampRally": true, "voucher": true, "isNew": false },
+      { "shopId": "kamepan-tachibana", "stampRally": true, "voucher": true, "isNew": false },
+      { "shopId": "kitchen-kameya", "stampRally": true, "voucher": true, "isNew": false },
+      { "shopId": "cleaning-hirata", "stampRally": true, "voucher": true, "isNew": true },
+      { "shopId": "renaissance-higashiazuma24", "stampRally": true, "voucher": false, "isNew": false },
+      { "shopId": "seven-eleven-bunka2", "stampRally": true, "voucher": true, "isNew": true },
+      { "shopId": "tachibanatei", "stampRally": true, "voucher": true, "isNew": true },
+      { "shopId": "tanoshimi", "stampRally": true, "voucher": true, "isNew": false },
+      { "shopId": "china-doll", "stampRally": true, "voucher": true, "isNew": false },
+      { "shopId": "pinocchio", "stampRally": true, "voucher": true, "isNew": true },
+      { "shopId": "petit-bonheur", "stampRally": true, "voucher": true, "isNew": false },
+      { "shopId": "mr-danger", "stampRally": true, "voucher": true, "isNew": false },
+      { "shopId": "yabunaka", "stampRally": true, "voucher": true, "isNew": false },
+      { "shopId": "rekimama", "stampRally": true, "voucher": false, "isNew": false },
+      { "shopId": "dekanoren", "stampRally": true, "voucher": true, "isNew": false },
+      { "shopId": "warauten", "stampRally": true, "voucher": true, "isNew": false },
+      { "shopId": "xiaolongbao-shinka", "stampRally": true, "voucher": true, "isNew": true },
+      { "shopId": "ishihara-toyo", "stampRally": true, "voucher": true, "isNew": true }
+    ]
+  }
+]

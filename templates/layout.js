@@ -47,7 +47,7 @@ function footer(site) {
 </footer>`;
 }
 
-// page: { title, description, active, jsonld:[...], content }
+// page: { title, description, active, jsonld:[...], content, ogImage? }（ogImage は assets/og/ 内のファイル名。省略時は従来どおり）
 function layout(page, site) {
   const jsonld = (page.jsonld || [])
     .filter(Boolean)
@@ -62,7 +62,7 @@ function layout(page, site) {
   const BASE = "https://www.azuma-terrace.com";
   const active = page.active || "index.html";
   const canonical = active === "index.html" ? `${BASE}/` : `${BASE}/${active.replace(/\.html$/, "")}`;
-  const ogImage = `${BASE}/assets/og/${active === "events.html" ? "og-events.jpg" : "og-default.jpg"}`;
+  const ogImage = `${BASE}/assets/og/${page.ogImage || (active === "events.html" ? "og-events.jpg" : "og-default.jpg")}`;
   const siteName = `${site.alternateName}（${site.name}）`;
   const desc = page.description || "";
   return `<!DOCTYPE html>

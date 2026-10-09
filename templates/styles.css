@@ -129,10 +129,10 @@ img { max-width: 100%; height: auto; display: block; }
 /* ---- セクション ---- */
 main { padding: 8px 0 40px; }
 section.block { padding: 26px 0; }
-.section-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 14px; }
+.section-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 14px; } /* 長い見出しでは英字ラベルを次の行へ（2026-10-09） */
 .section-head h2 { font-size: 1.28rem; margin: 0; position: relative; padding-left: 14px; }
 .section-head h2::before { content: ""; position: absolute; left: 0; top: .18em; bottom: .18em; width: 6px; border-radius: 3px; background: var(--yellow); }
-.section-head .en { color: var(--ink-soft); font-size: .8rem; letter-spacing: .1em; }
+.section-head .en { color: var(--ink-soft); font-size: .8rem; letter-spacing: .1em; white-space: nowrap; }
 
 .lead { color: var(--ink-soft); margin: 0 0 18px; }
 
@@ -176,6 +176,28 @@ section.block { padding: 26px 0; }
 .cat-group.service > h3.cat-title { background: var(--yellow); color: var(--ink); }
 .cat-group.pharmacy > h3.cat-title { background: var(--pink); }
 .cat-group.care > h3.cat-title { background: var(--blue); }
+
+/* ---- イベントの参加店一覧（/<slug>・data/campaigns.json から生成） ---- */
+.camp-link { margin: 10px 0 0; }
+.camp-link a {
+  display: inline-block; background: var(--yellow); color: var(--ink); font-weight: 700;
+  text-decoration: none; padding: 8px 16px; border-radius: 999px; font-size: .92rem;
+}
+.camp-ended { background: #efe7d7; color: var(--ink); border-radius: 10px; padding: 10px 14px; font-weight: 700; margin: 0 0 14px; }
+.camp-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 12px; }
+.camp-stat { background: var(--card); border-radius: var(--radius); padding: 10px 6px; text-align: center; box-shadow: 0 2px 10px rgba(90,80,40,.06); }
+.camp-stat b { display: block; font-size: 1.6rem; color: var(--green-dark); line-height: 1.2; }
+.camp-stat span { display: block; font-size: .74rem; color: var(--ink-soft); }
+.camp-legend { font-size: .82rem; color: var(--ink-soft); margin: 0 0 12px; }
+.camp-card h3 a { color: var(--ink); text-decoration: none; }
+.camp-marks { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 6px; }
+.camp-mark { display: inline-flex; align-items: center; gap: 4px; font-size: .8rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+.camp-mark b { font-size: .95rem; }
+.camp-mark.on { background: var(--green); color: #fff; }
+.camp-mark.off { background: #efe7d7; color: var(--ink-soft); }
+.camp-new { display: inline-block; background: var(--pink); color: #fff; font-size: .72rem; font-weight: 800; padding: 1px 8px; border-radius: 999px; vertical-align: middle; }
+.camp-note { font-size: .9rem; color: var(--ink); background: var(--card); border-left: 4px solid var(--yellow); border-radius: 8px; padding: 10px 12px; margin: 16px 0 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---- イベント ---- */
 .event {

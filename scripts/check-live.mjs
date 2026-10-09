@@ -4,11 +4,21 @@
 //   接続先は自ドメイン(www.azuma-terrace.com / azuma-terrace.com)のみ。任意URL/ホスト名は引数・環境変数で受け付けない。
 //   引数として受け付けるのは「ページ内に含まれるべき検索文字列」だけ（スラッシュや "http" を含む引数はエラー終了）。
 import process from "node:process";
+import fs from "node:fs";
 
 // ---- 接続先（固定・変更禁止。ここ以外からURLを取らない） ----
 const ORIGIN = "https://www.azuma-terrace.com";   // 本番 www（定数）
 const APEX = "https://azuma-terrace.com";          // apex（定数・308確認用）
-const PAGES = ["/", "/events", "/shops", "/medical", "/access", "/guidelines", "/about"]; // 全7ページ
+const BASE_PAGES = ["/", "/events", "/shops", "/medical", "/access", "/guidelines", "/about"]; // 基本7ページ
+// イベントの参加店一覧ページ（data/campaigns.json の slug）も確認対象に含める。
+// パスはリポジトリ内のデータから作る（引数・環境変数からは受け取らない＝接続先固定の方針どおり）。
+const PAGES = [...BASE_PAGES, ...readCampaignPaths()];
+function readCampaignPaths() {
+  try {
+    const list = JSON.parse(fs.readFileSync(new URL("../data/campaigns.json", import.meta.url), "utf8"));
+    return list.map((c) => c.slug).filter((s) => /^[a-z0-9-]+$/.test(s)).map((s) => `/${s}`);
+  } catch { return []; }
+}
 const INSIGHTS = "/_vercel/insights/script.js"; // Vercel Web Analytics（本番が自動配信・定数）
 
 // ---- 引数防御: URL/ホスト名の混入を拒否（検索文字列のみ許可） ----
@@ -42,7 +52,7 @@ function jsonLdBlocks(html) {
       badStatus.push(`${p}=ERR(${e.cause?.code || e.message})`);
     }
   }
-  check("全7ページ HTTP 200", badStatus.length === 0, badStatus.length ? badStatus.join(", ") : `${PAGES.length}ページ 200`);
+  check(`全${PAGES.length}ページ HTTP 200`, badStatus.length === 0, badStatus.length ? badStatus.join(", ") : `${PAGES.length}ページ 200`);
 
   // トップに「あづまテラス」含有
   const top = pages["/"]?.body || "";

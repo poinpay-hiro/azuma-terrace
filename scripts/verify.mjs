@@ -11,7 +11,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist");
 const DATA = path.join(ROOT, "data");
 
-const REQUIRED_PAGES = ["index", "events", "shops", "medical", "access", "guidelines", "about"];
+const BASE_PAGES = ["index", "events", "shops", "medical", "access", "guidelines", "about"];
+// イベントの参加店一覧ページ（data/campaigns.json の slug ごとに1ページ・2026-10-09）も生成の期待値に含める
+let CAMPAIGNS = [];
+try { CAMPAIGNS = JSON.parse(fs.readFileSync(path.join(DATA, "campaigns.json"), "utf8")); } catch (e) { CAMPAIGNS = null; }
+const REQUIRED_PAGES = [...BASE_PAGES, ...(CAMPAIGNS || []).map((c) => c.slug)];
 const IMG_EXT = /\.(jpe?g|png|svg|webp|gif|avif)$/i;
 const SIZE_WARN = 1024 * 1024; // 1MB
 // ビルド日（日本時間）。build.js のイベント状態判定と同じ式（UTC+9 の日付）。#11・#18 で使う。
@@ -40,10 +44,10 @@ function jsonLdBlocks(html) {
   return out;
 }
 
-// ============ 1. 7ページ存在（guidelines 含む）============
+// ============ 1. 全ページ存在（基本7ページ＋参加店一覧ページ）============
 {
   const missing = REQUIRED_PAGES.filter((p) => !fs.existsSync(path.join(DIST, p + ".html")));
-  check("7ページ生成(guidelines含む)", missing.length === 0, missing.length ? `不足: ${missing.join(", ")}` : `${REQUIRED_PAGES.length}ページ存在`);
+  check(`${REQUIRED_PAGES.length}ページ生成(基本7＋参加店一覧${REQUIRED_PAGES.length - BASE_PAGES.length})`, missing.length === 0, missing.length ? `不足: ${missing.join(", ")}` : `${REQUIRED_PAGES.length}ページ存在`);
 }
 
 const distFiles = listFiles(DIST);
@@ -414,6 +418,28 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
     stale.length
       ? `ビルド日(JST) ${BUILD_DATE_JST} より前に終了しているのに status=upcoming: ${stale.map((e) => `${e.id}(${e.dateEnd || e.dateStart})`).join(", ")}（表示は日付判定で過去扱い済み。data の status を past に直すと解消）`
       : `該当なし（${evs.length}件・ビルド日(JST) ${BUILD_DATE_JST}）`);
+}
+
+// ============ 19. 参加店一覧（data/campaigns.json）の shopId が shops.json に全件存在 ============
+// 店は shops.json の id で参照する設計（CLAUDE.md §5 2026-10-09）。参照切れは「載るはずの店が載らない」事故になるため FAIL。
+// あわせて、同じ店の重複登録と、campaigns.json が読めない状態も FAIL にする。
+{
+  const problems = [];
+  let shopIds = new Set();
+  try { shopIds = new Set(JSON.parse(fs.readFileSync(path.join(DATA, "shops.json"), "utf8")).map((s) => s.id)); } catch (e) { problems.push("shops.json を読めない"); }
+  if (CAMPAIGNS === null) problems.push("campaigns.json を読めない");
+  let n = 0;
+  for (const c of CAMPAIGNS || []) {
+    const seen = new Set();
+    for (const p of c.participants || []) {
+      n++;
+      if (!shopIds.has(p.shopId)) problems.push(`${c.slug}: shops.json に無い shopId「${p.shopId}」`);
+      if (seen.has(p.shopId)) problems.push(`${c.slug}: shopId「${p.shopId}」が重複`);
+      seen.add(p.shopId);
+    }
+  }
+  check("参加店一覧の shopId 参照(campaigns.json→shops.json)", problems.length === 0,
+    problems.length ? problems.slice(0, 8).join(" / ") : `${(CAMPAIGNS || []).length}件の一覧・${n}店すべて shops.json に存在・重複なし`);
 }
 
 // ============ 出力 ============

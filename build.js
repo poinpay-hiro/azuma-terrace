@@ -69,9 +69,30 @@ function readImageSize(file) {
   throw new Error(`画像の寸法を読めません: ${path.relative(ROOT, file)}`);
 }
 
+// イベントの参加店一覧（data/campaigns.json → /<slug> ページを自動生成・CLAUDE.md §5 2026-10-09）。
+// 店は shops.json の id で参照し、店名・住所・電話はここで shops.json から引く（campaigns.json に複製しない）。
+// 見つからない id があれば build を止める（推測で紐づけない）。集計（参加数など）は固定で持たず、ここで算出する。
+const campaigns = readJSON("campaigns.json").map((c) => {
+  const missing = c.participants.filter((p) => !shops.some((s) => s.id === p.shopId)).map((p) => p.shopId);
+  if (missing.length) throw new Error(`campaigns.json（${c.slug}）の shopId が shops.json にありません: ${missing.join(", ")}`);
+  return {
+    ...c,
+    page: `${c.slug}.html`,
+    entries: c.participants.map((p) => ({ ...p, shop: shops.find((s) => s.id === p.shopId) })),
+    counts: {
+      stampRally: c.participants.filter((p) => p.stampRally).length,
+      voucher: c.participants.filter((p) => p.voucher).length,
+      isNew: c.participants.filter((p) => p.isNew).length,
+    },
+    ended: c.period.end < BUILD_DATE_JST, // 期間を過ぎたら冒頭に「終了しました」を自動表示
+  };
+});
+
 // 以降のページ生成（カード・JSON-LD・並べ替え）はすべて判定後の status を使う。data の status は参照しない。
 const events = readJSON("events.json").map((e) => {
   const out = { ...e, status: displayStatus(e) };
+  const camp = campaigns.find((c) => c.eventId === e.id);
+  if (camp) out.campaignLink = { href: camp.page, label: "スタンプラリー参加店・商品券取扱店はこちら" };
   if (e.image) {
     const { width, height } = readImageSize(path.join(ASSETS, "events", e.image));
     out.imageWidth = width;
@@ -240,6 +261,63 @@ ${lineCta()}
   return layout({ title: "イベント", description, active: "events.html", jsonld, content }, site);
 }
 
+// イベントの参加店一覧ページ（/<slug>）。data/campaigns.json から自動生成（ナビには入れない＝期間限定ページ）。
+function pageCampaign(c) {
+  const ev = events.find((e) => e.id === c.eventId);
+  const BASE = "https://www.azuma-terrace.com";
+  const WD = ["日", "月", "火", "水", "木", "金", "土"];
+  const dayOf = (iso) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return WD[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  };
+  const when = ev ? `${C.fmtDate(ev.dateStart)}（${dayOf(ev.dateStart)}）${ev.timeNote ? " " + ev.timeNote : ""}` : "";
+  const ended = c.ended
+    ? `<p class="camp-ended">このイベントは終了しました（${esc(C.fmtDate(c.period.end))}開催）。</p>`
+    : "";
+  const mark = (on, label) => `<span class="camp-mark ${on ? "on" : "off"}">${esc(label)}<b>${on ? "○" : "—"}</b><span class="sr">${on ? "対象" : "対象外"}</span></span>`;
+  const cards = c.entries.map(({ shop: s, stampRally, voucher, isNew }) => {
+    const href = `${s.category === "medical" ? "medical" : "shops"}.html#${s.id}`;
+    const rows = [`<p class="meta"><span class="k">住所</span><span>${esc(s.address)}</span></p>`];
+    if (s.tel) rows.push(`<p class="meta"><span class="k">電話</span>${C.telLink(s.tel)}</p>`);
+    return `<article class="card camp-card">
+  <span class="genre">${esc(s.genre)}</span>${isNew ? ` <span class="camp-new">NEW</span>` : ""}
+  <h3><a href="${esc(href)}">${esc(s.name)}</a></h3>
+  <p class="camp-marks">${mark(stampRally, "スタンプラリー")}${mark(voucher, "デジタル商品券")}</p>
+  ${rows.join("\n  ")}
+</article>`;
+  }).join("\n");
+  const content = `
+<section class="block"><div class="container">
+  <div class="section-head"><h2>${esc(c.title)}</h2><span class="en">STAMP RALLY</span></div>
+  ${ended}
+  ${ev ? `<p class="lead">${esc(ev.title)}<br>開催日：${esc(when)}<br>会場：${esc(ev.venue)}<br><a href="events.html#${esc(ev.id)}">イベントの詳細を見る →</a></p>` : ""}
+  <div class="camp-stats">
+    <div class="camp-stat"><b>${c.counts.stampRally}</b><span>スタンプラリー参加店</span></div>
+    <div class="camp-stat"><b>${c.counts.voucher}</b><span>デジタル商品券取扱店</span></div>
+    <div class="camp-stat"><b>${c.counts.isNew}</b><span>新規参加店</span></div>
+  </div>
+  <p class="camp-legend">○＝対象　—＝対象外　<span class="camp-new">NEW</span>＝今回から参加</p>
+  <div class="grid">${cards}</div>
+  ${(c.notes || []).map((n) => `<p class="camp-note">※${esc(n)}</p>`).join("\n  ")}
+</div></section>
+${lineCta()}
+`;
+  const itemList = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: c.title,
+    numberOfItems: c.entries.length,
+    itemListElement: c.entries.map(({ shop: s }, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: s.name,
+      url: `${BASE}/${s.category === "medical" ? "medical" : "shops"}#${s.id}`,
+    })),
+  };
+  const description = `${c.title}。スタンプラリー参加店${c.counts.stampRally}店・デジタル商品券取扱店${c.counts.voucher}店（うち新規参加${c.counts.isNew}店）の一覧です。`;
+  return layout({ title: c.title, description, active: c.page, ogImage: "og-events.jpg", jsonld: [SC, itemList], content }, site);
+}
+
 function groupedShops(list, groupFn, groups) {
   return groups
     .map(({ key, title, cls }) => {
@@ -406,6 +484,7 @@ function build() {
     "guidelines.html": pageGuidelines(),
     "about.html": pageAbout(),
   };
+  for (const c of campaigns) pages[c.page] = pageCampaign(c);
   for (const [name, html] of Object.entries(pages)) {
     fs.writeFileSync(path.join(DIST, name), html, "utf8");
   }
