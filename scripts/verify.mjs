@@ -11,7 +11,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist");
 const DATA = path.join(ROOT, "data");
 
-const BASE_PAGES = ["index", "events", "shops", "medical", "access", "guidelines", "about"];
+const BASE_PAGES = ["index", "events", "shops", "medical", "access", "guidelines", "sponsor", "about"]; // sponsor＝2026-10-10 追加
 // イベントの参加店一覧ページ（data/campaigns.json の slug ごとに1ページ・2026-10-09）も生成の期待値に含める
 let CAMPAIGNS = [];
 try { CAMPAIGNS = JSON.parse(fs.readFileSync(path.join(DATA, "campaigns.json"), "utf8")); } catch (e) { CAMPAIGNS = null; }
@@ -47,7 +47,7 @@ function jsonLdBlocks(html) {
 // ============ 1. 全ページ存在（基本7ページ＋参加店一覧ページ）============
 {
   const missing = REQUIRED_PAGES.filter((p) => !fs.existsSync(path.join(DIST, p + ".html")));
-  check(`${REQUIRED_PAGES.length}ページ生成(基本7＋参加店一覧${REQUIRED_PAGES.length - BASE_PAGES.length})`, missing.length === 0, missing.length ? `不足: ${missing.join(", ")}` : `${REQUIRED_PAGES.length}ページ存在`);
+  check(`${REQUIRED_PAGES.length}ページ生成(基本${BASE_PAGES.length}＋参加店一覧${REQUIRED_PAGES.length - BASE_PAGES.length})`, missing.length === 0, missing.length ? `不足: ${missing.join(", ")}` : `${REQUIRED_PAGES.length}ページ存在`);
 }
 
 const distFiles = listFiles(DIST);
@@ -461,6 +461,22 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
   }
   check("参加店一覧の商品券利用期間(voucherFrom/Until)の形式と前後", problems.length === 0,
     problems.length ? problems.join(" / ") : n ? `${n}件の一覧で形式OK・期限が開始より後` : "該当なし（利用期間の記載なし）");
+}
+
+// ============ 21. 協賛・PRブース案内（/sponsor）の問い合わせ導線 ============
+// 企業・団体からの相談の入口なので、公式LINE（主）とメール（副・件名入り mailto）の両方のリンクがあることを確かめる（2026-10-10）。
+{
+  const problems = [];
+  let lineUrl = "";
+  try { lineUrl = JSON.parse(fs.readFileSync(path.join(DATA, "site.json"), "utf8")).lineUrl || ""; } catch (e) { problems.push("site.json を読めない"); }
+  const p = path.join(DIST, "sponsor.html");
+  if (!fs.existsSync(p)) problems.push("sponsor.html が無い");
+  else {
+    const html = fs.readFileSync(p, "utf8");
+    if (!lineUrl || !html.includes(`href="${lineUrl}"`)) problems.push("公式LINEのリンクが無い");
+    if (!/href="mailto:[^"]+\?subject=/.test(html)) problems.push("件名入りの mailto リンクが無い");
+  }
+  check("協賛ページの問い合わせ導線(公式LINE＋件名入りmailto)", problems.length === 0, problems.length ? problems.join(" / ") : "公式LINE・件名入り mailto とも存在");
 }
 
 // ============ 出力 ============

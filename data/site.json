@@ -24,5 +24,11 @@
   "nearby": [
     { "name": "吾嬬神社", "note": "名称の由来となった神社（弟橘媛をまつる）" },
     { "name": "香梅園", "note": "梅が約300本植えられた梅の名所" }
-  ]
+  ],
+  "highlights": {
+    "note": "協賛・PRブース案内（/sponsor）に表示する実績。オーナー提供の一次情報とサイト自前の計測値のみ（2026-10-10 オーナー指示）。文面は build 時に組み立てる",
+    "lineFriends": { "count": 1000, "over": true, "asOf": "2026-10" },
+    "cornSoldOut": { "eventId": "corn-matsuri-2026", "count": 2000, "hours": 1.5 },
+    "siteVisitors": { "eventId": "corn-matsuri-2026", "approx": 2000, "measured": 1952, "periodWeeks": 3, "source": "Vercel Web Analytics" }
+  }
 }

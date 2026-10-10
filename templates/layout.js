@@ -8,6 +8,7 @@ const NAV = [
   { href: "medical.html", label: "医療・健康" },
   { href: "access.html", label: "アクセス" },
   { href: "guidelines.html", label: "行動指針" },
+  { href: "sponsor.html", label: "協賛・PRブース" },
   { href: "about.html", label: "商店街について" },
 ];
 

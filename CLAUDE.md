@@ -9,7 +9,7 @@
 
 - **名称**: 東あづま本通り会（愛称：あづまテラス／azuma terrace）公式サイト
 - **方針**:「AIに読ませる名刺」= 構造化データ(JSON-LD)必須・事実はテキスト明記・静的で軽いHTML・装飾JSは最小限。
-- **構成**: フレームワーク不使用。`build.js`（Node標準ライブラリのみ）が `data/*.json` ＋ `templates/` を読み `dist/` に ~~6ページ生成（index/events/shops/medical/access/about）~~ → **7ページ生成（index/events/shops/medical/access/guidelines/about）**。`dist/` は `.gitignore` 対象で、Vercel がビルド時に `node build.js` で生成する（`vercel.json`）。
+- **構成**: フレームワーク不使用。`build.js`（Node標準ライブラリのみ）が `data/*.json` ＋ `templates/` を読み `dist/` に ~~6ページ生成（index/events/shops/medical/access/about）~~ → ~~**7ページ生成（index/events/shops/medical/access/guidelines/about）**~~ → **基本8ページ（index/events/shops/medical/access/guidelines/sponsor/about）＋参加店一覧ページ（campaigns.json の slug ごと）を生成**〔2026-10-10・sponsor 追加〕。`dist/` は `.gitignore` 対象で、Vercel がビルド時に `node build.js` で生成する（`vercel.json`）。
 - **データ**: 器と中身を分離。`data/site.json`・`data/shops.json`（~~全42店 shop33/medical9~~ → **件数は固定で書かない。サイト上の店舗数は build 時にデータから算出**〔2026-10-09〕）・`data/events.json`。店舗の営業時間等は各店の null フィールドに追記→再ビルドで反映。
 - **アセット**: `assets/` にロゴSVG（改変禁止）、`assets/guidelines/*.jpg`（活動の手引きの分割画像。~~about に掲載~~ → **guidelines.html に見開き構成で掲載・about からはリンクのみ**）。
 - ⚠️旧記述の訂正（2026-09-21・体制同期案件 第3段）: 本節の「6ページ」「about に掲載」は、guidelines ページ新設（2026-07）後も更新されずに残っていた旧記述。verify.mjs は当時から7ページで検査しており、**文書側が古かった**（実装は正しい）。
@@ -24,8 +24,8 @@
 ### 実行するもの
 - 検品スクリプト: `scripts/verify.mjs`（1ファイルに集約）。`npm run verify`（= `node build.js && node scripts/verify.mjs`）で実行。
 - 判定は **PASS / FAIL / WARN** の3段階。**1つでも FAIL なら終了コード1**。**WARN は push を止めない（終了コード0）が、report に必ず載せる**（該当内容と、裁定が要るかどうか）。項目7の「画像1MB超」も同じく非致命の警告として出力される。
-- 検品項目（全20項目・2026-10-09 時点）:
-  1. `dist/` に **基本7ページ**（index/events/shops/medical/access/guidelines/about）＋**参加店一覧ページ**（`data/campaigns.json` の slug ごと・2026-10-09 追加）が存在
+- 検品項目（全21項目・2026-10-10 時点）:
+  1. `dist/` に **基本8ページ**（index/events/shops/medical/access/guidelines/sponsor/about。sponsor は 2026-10-10 追加）＋**参加店一覧ページ**（`data/campaigns.json` の slug ごと・2026-10-09 追加）が存在
   2. 全ページの内部リンク切れゼロ（assets含む。Vercel 計測タグのパス1本のみ除外＝§6）
   3. 全 JSON-LD ブロックがパース成功
   4. 店舗 JSON-LD の電話が `+81` 形式／電話 null の店に `telephone` キーが無い
@@ -45,6 +45,7 @@
   18. **イベント status と日付の整合**（WARN）: `data/events.json` で `status=upcoming` なのに dateEnd（無ければ dateStart）がビルド日（日本時間）より前のイベントを知らせる。表示は日付判定（§5）で正しく過去扱いになるので push は止めないが、data の status を `past` に直すと解消する
   19. **参加店一覧の shopId 参照**（FAIL）: `data/campaigns.json` の各参加店の `shopId` が `shops.json` に全件存在し、同じ一覧の中で重複していない（参照切れ＝載るはずの店が載らない事故を防ぐ・2026-10-09 追加）
   20. **参加店一覧の商品券利用期間の形式と前後**（FAIL）: `data/campaigns.json` の `voucherFrom`（日付または `YYYY-MM-DDTHH:MM+09:00`）と `voucherUntil`（日付）がそろっていて、形式が正しく、期限が開始より後である（期限後の自動切り替えが働く前提を守る・2026-10-09 追加）
+  21. **協賛ページの問い合わせ導線**（FAIL）: `/sponsor` に公式LINE（site.json の lineUrl）へのリンクと、件名入りの mailto リンクの両方がある（企業・団体からの相談の入口を守る・2026-10-10 追加）
 - ⚠️旧記述の訂正（2026-09-21・体制同期案件 第3段）: 本節の検品項目は長く次の記載のままで、verify.mjs の実態（15項目）と食い違っていた。
   - ~~検品項目（1つでもFAILなら終了コード1）: 1〜6 の6項目~~ → 実態は 15項目（項目7〜15 は 2026-07〜08 に追加されたが文書に反映されていなかった）。今回 16・17 を加えて **17項目**。
   - ~~1. `dist/` に6ページ（index/events/shops/medical/access/about）が存在~~ → 7ページ（guidelines 含む）。
@@ -136,13 +137,14 @@
 - **【確定事項】施設名は二重構造**: 見出し＝**通称（`name`）** ／ 正式名称＝**`formalName`**（表示は見出し直下に小さめ・JSON-LD は **`legalName`** で出力）。**提出書類に正式名称があれば必ず `formalName` に記録する**（2026-07 オーナー裁定）。通称と正式名称が同一の場合は `formalName: null`。
 - **【確定事項】イベントの開催予定／過去はビルド時に日付で自動判定する**: `build.js` が **dateEnd（無ければ dateStart）とビルド日（日本時間）を比較**して表示上の状態を決める（終了日 < ビルド日 → 過去／開始日 ≦ ビルド日 → 開催中／それ以外 → 開催予定）。`data/events.json` の `status` は表示判定に使わない（残してよいが、古いと verify #18 が WARN で知らせる）。**終了後は次の push（再ビルド）で自動的に「これまでの開催」へ移るため、手動切替は不要**。判定はビルド時点で固定されるので、終了を即時に反映したい場合は push が要る（2026-09-26 オーナー裁定。きっかけ: 8/2 のとうもろこしまつり2026 が status の手動切替漏れで開催後も「開催予定」表示のまま残った）。
 - **【確定事項】イベントの参加店一覧は `data/campaigns.json` から自動生成する**: 店は **`shops.json` の id で参照**し（店名・住所・電話は campaigns.json に複製しない）、`build.js` が slug ごとに **`/<slug>` ページ**を生成する。**参加数などの集計は固定で書かず build 時に算出**する。ナビには入れない（期間限定ページ）が、イベント終了後もページは残し、期間（`period.end`）を過ぎたら冒頭に「終了しました」を自動表示する。該当イベントのカード（events ページ・トップの最新枠）に一覧ページへのボタンを出す。shopId が shops.json に無い場合は build を止める（推測で紐づけない）（2026-10-09 オーナー指示）。
+- **【確定事項】`/sponsor` は企業・団体向けの協賛・PRブース案内**: 対象は地域の企業・団体・学校等のプロモーション（新製品のサンプリング・PRブース・体験コーナー・新商品のお披露目等）で、**商売目的の出店者の募集ページではない**。**問い合わせの中心は公式LINE、メール（件名・本文の雛形入り mailto）は副**。**年間イベントは `events.json`（`series` ごと）から自動生成し、時期は開催実績の月から算出して固定で書かない**。**実績数字はオーナー提供の一次情報とサイト自前の計測値のみ掲載し、データ（`site.json` の `highlights`）で持つ**（文面は build 時に組み立て、数字を固定文言に埋め込まない）（2026-10-10 オーナー指示）。
 - **【確定事項】openingHours/closedDays の表記ルール**: 曜日は**1文字（月〜日）**で『曜』を付けない／連続は**『〜』**・飛び飛びは**『・』**／時間は**半角 `9:00〜18:30` 形式**／曜日グループ区切りは**『／』**・同一グループ内の複数時間帯は**『、』**／波ダッシュは **U+301C** に統一（全角チルダ U+FF5E は不可）。**提出書類の表記がどうであれ、データ投入時にこのルールへ正規化する**（2026-07 オーナー裁定）。verify.mjs に表記ルール適合の検査あり。
 
 ---
 
 ## 6. 定型スクリプトと運用（確認プロンプト削減・2026-07）
 
-- **本番反映の確認は `node scripts/check-live.mjs`** を使う（`npm run check-live` でも可）。確認対象は基本7ページ＋参加店一覧ページ（`data/campaigns.json` の slug から自動で加わる。パスはリポジトリ内のデータから作り、引数・環境変数からは受け取らない＝2026-10-09）。**PDFの画像化は `node scripts/convert-pdf.mjs <入力PDF> <出力JPG> [幅] [ページ]`** を使う。**OGP画像・faviconの生成は `node scripts/make-og.mjs`**（`npm run make-og`／固定処理・引数なし）。**バックアップは `node scripts/backup.mjs`**（固定処理・引数なし・後述の【バックアップ運用】）。**アドホックな `curl` やワンライナーを都度書かない**（allow 済みの定型スクリプトに寄せて確認回数を減らす）。
+- **本番反映の確認は `node scripts/check-live.mjs`** を使う（`npm run check-live` でも可）。確認対象は基本8ページ（2026-10-10 に /sponsor を追加）＋参加店一覧ページ（`data/campaigns.json` の slug から自動で加わる。パスはリポジトリ内のデータから作り、引数・環境変数からは受け取らない＝2026-10-09）。**PDFの画像化は `node scripts/convert-pdf.mjs <入力PDF> <出力JPG> [幅] [ページ]`** を使う。**OGP画像・faviconの生成は `node scripts/make-og.mjs`**（`npm run make-og`／固定処理・引数なし）。**バックアップは `node scripts/backup.mjs`**（固定処理・引数なし・後述の【バックアップ運用】）。**アドホックな `curl` やワンライナーを都度書かない**（allow 済みの定型スクリプトに寄せて確認回数を減らす）。
 - **イベントの告知を強化するときは、`og-events.jpg` を最新イベントのチラシで作り直す**（~~`make-og.mjs` の corn2026 参照先を差し替えて再生成~~ → **`make-og.mjs` 冒頭の定数 `EVENTS_OG_FLYER` だけを差し替えて再生成**。2026-09-26 に参照先を定数1箇所へ集約）。
 - **【司令塔条件】ネットワークを触る scripts は接続先を固定する**: 接続先は自ドメイン（www.azuma-terrace.com / azuma-terrace.com）と localhost のみをコード内定数で持ち、**任意URL/ホスト名を引数・環境変数で受け付けない**。`check-live.mjs` は検索文字列のみ引数で受け、`/` や `http` を含む引数はエラー終了する防御を実装済み。
 - **`scripts/` 配下の追加・変更は、コミット報告に必ず明記する（`verify.mjs` と同格の扱い）。** 検品を弱める変更は事前承認必須（§1）。

@@ -202,6 +202,27 @@ section.block { padding: 26px 0; }
 .camp-note { font-size: .9rem; color: var(--ink); background: var(--card); border-left: 4px solid var(--yellow); border-radius: 8px; padding: 10px 12px; margin: 16px 0 0; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
+/* ---- 協賛・PRブースのご案内（/sponsor） ---- */
+.sp-stats { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 0 0 8px; }
+.sp-stat { background: var(--card); border-radius: var(--radius); padding: 12px 14px; text-align: center; box-shadow: 0 2px 10px rgba(90,80,40,.06); border-top: 4px solid var(--yellow); }
+.sp-stat b { display: block; font-size: 1.7rem; color: var(--green-dark); line-height: 1.2; }
+.sp-stat span { display: block; font-size: .9rem; color: var(--ink); font-weight: 700; margin-top: 2px; }
+.sp-stat small { display: block; font-size: .74rem; color: var(--ink-soft); margin-top: 2px; }
+.sp-series .sp-flyer { display: block; max-width: 180px; margin: 10px 0 0; border: 1px solid #efe7d7; border-radius: 8px; overflow: hidden; }
+.sp-series .sp-flyer img { width: 100%; height: auto; display: block; }
+.sp-list, .sp-flow { margin: 0 0 10px; padding-left: 1.4em; }
+.sp-list li, .sp-flow li { margin: 4px 0; }
+.sp-mail { font-size: .92rem; color: var(--ink-soft); text-align: center; }
+@media (min-width: 720px) { .sp-stats { grid-template-columns: repeat(3, 1fr); } }
+
+/* ---- 印刷（企業の担当者が社内共有で印刷しても崩れないように・2026-10-10） ---- */
+@media print {
+  .site-nav, .nav-toggle { display: none !important; } /* 連絡先（LINE・メール・フッターの所在地）は紙にも残す */
+  body { background: #fff; }
+  .card, .sp-stat, .camp-card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+  a { color: inherit; text-decoration: underline; }
+}
+
 /* ---- イベント ---- */
 .event {
   background: var(--card);
@@ -315,6 +336,10 @@ section.block { padding: 26px 0; }
   .grid { grid-template-columns: 1fr 1fr; }
   .hero h1 { font-size: 1.9rem; }
   .links-row { grid-template-columns: repeat(4, 1fr); }
+}
+/* ナビ8項目（2026-10-10 に「協賛・PRブース」追加）をタブレット幅でも1行に収める */
+@media (min-width: 720px) and (max-width: 899px) {
+  .site-nav a { padding: 10px 7px; font-size: .92rem; }
 }
 @media (min-width: 960px) {
   .grid { grid-template-columns: 1fr 1fr 1fr; }

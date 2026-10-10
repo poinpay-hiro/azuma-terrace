@@ -9,7 +9,7 @@ import fs from "node:fs";
 // ---- 接続先（固定・変更禁止。ここ以外からURLを取らない） ----
 const ORIGIN = "https://www.azuma-terrace.com";   // 本番 www（定数）
 const APEX = "https://azuma-terrace.com";          // apex（定数・308確認用）
-const BASE_PAGES = ["/", "/events", "/shops", "/medical", "/access", "/guidelines", "/about"]; // 基本7ページ
+const BASE_PAGES = ["/", "/events", "/shops", "/medical", "/access", "/guidelines", "/sponsor", "/about"]; // 基本8ページ（/sponsor＝2026-10-10 追加）
 // イベントの参加店一覧ページ（data/campaigns.json の slug）も確認対象に含める。
 // パスはリポジトリ内のデータから作る（引数・環境変数からは受け取らない＝接続先固定の方針どおり）。
 const PAGES = [...BASE_PAGES, ...readCampaignPaths()];

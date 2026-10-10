@@ -338,6 +338,128 @@ ${lineCta()}
   return layout({ title: c.title, description, active: c.page, ogImage: "og-events.jpg", jsonld: [SC, itemList], content }, site);
 }
 
+// 企業・団体向け「協賛・PRブースのご案内」（/sponsor・2026-10-10 オーナー指示・ops_orders id=30）。
+// 年間イベントは events.json の series ごとに自動生成（時期は開催実績の月から算出・固定で書かない）。
+// 実績数字は site.json の highlights（オーナー提供の一次情報とサイト自前の計測値のみ）から文面を組み立てる。
+function pageSponsor() {
+  const BASE = "https://www.azuma-terrace.com";
+  const nf = (n) => Number(n).toLocaleString("ja-JP");
+  const evById = (id) => events.find((e) => e.id === id);
+
+  // ---- 実績（ハイライト帯）----
+  const H = site.highlights || {};
+  const tiles = [];
+  if (H.lineFriends) {
+    const [y, m] = String(H.lineFriends.asOf || "").split("-").map(Number);
+    tiles.push({ value: `${nf(H.lineFriends.count)}人${H.lineFriends.over ? "超" : ""}`, label: "公式LINE 友だち", note: y && m ? `${y}年${m}月時点` : "" });
+  }
+  if (H.cornSoldOut) {
+    const ev = evById(H.cornSoldOut.eventId);
+    tiles.push({ value: `${nf(H.cornSoldOut.count)}本`, label: `とうもろこしが約${H.cornSoldOut.hours}時間で完売`, note: ev ? ev.title.replace(/^あづまテラス\s*/, "") : "" });
+  }
+  if (H.siteVisitors) {
+    const ev = evById(H.siteVisitors.eventId);
+    const evName = ev ? ev.title.replace(/^あづまテラス\s*/, "") : "まつり";
+    tiles.push({ value: `約${nf(H.siteVisitors.approx)}人`, label: `公式サイト訪問（${evName}期間の約${H.siteVisitors.periodWeeks}週間）`, note: `自前計測（${H.siteVisitors.source}・実測${nf(H.siteVisitors.measured)}人）` });
+  }
+  const highlightsHtml = tiles.length
+    ? `<div class="sp-stats">${tiles.map((t) => `<div class="sp-stat"><b>${esc(t.value)}</b><span>${esc(t.label)}</span>${t.note ? `<small>${esc(t.note)}</small>` : ""}</div>`).join("")}</div>`
+    : "";
+
+  // ---- 年間イベント（events.json の series ごと）----
+  const seriesMap = new Map();
+  for (const e of events) {
+    const key = e.series || e.title;
+    if (!seriesMap.has(key)) seriesMap.set(key, []);
+    seriesMap.get(key).push(e);
+  }
+  const monthsOf = (e) => {
+    const out = [];
+    const [y1, m1] = e.dateStart.split("-").map(Number);
+    const [y2, m2] = (e.dateEnd || e.dateStart).split("-").map(Number);
+    for (let y = y1, m = m1; y < y2 || (y === y2 && m <= m2); m === 12 ? (y++, (m = 1)) : m++) out.push(m);
+    return out;
+  };
+  const series = [...seriesMap.entries()].map(([name, list]) => {
+    const months = [...new Set(list.flatMap(monthsOf))].sort((a, b) => a - b);
+    const latest = list.slice().sort((a, b) => (a.dateStart < b.dateStart ? 1 : -1))[0];
+    const withImage = list.filter((e) => e.image).sort((a, b) => (a.dateStart < b.dateStart ? 1 : -1))[0];
+    const years = [...new Set(list.map((e) => Number(e.dateStart.slice(0, 4))))].sort((a, b) => a - b);
+    const first = String(latest.summary || "").split("。")[0];
+    return {
+      name, months, latest, withImage, years,
+      when: months.length > 1 && months[months.length - 1] - months[0] === months.length - 1 ? `${months[0]}〜${months[months.length - 1]}月` : `${months.join("・")}月`,
+      gist: first.length > 70 ? first.slice(0, 70) + "…" : first,
+    };
+  }).sort((a, b) => a.months[0] - b.months[0]);
+  const seriesHtml = series.map((s) => {
+    const img = s.withImage
+      ? `<a class="sp-flyer" href="assets/events/${esc(s.withImage.image)}" target="_blank" rel="noopener" title="チラシを原寸で開く"><img src="assets/events/${esc(s.withImage.image)}" width="${Number(s.withImage.imageWidth)}" height="${Number(s.withImage.imageHeight)}" loading="lazy" alt="${esc(s.withImage.title)}のチラシ"></a>`
+      : "";
+    return `<article class="card sp-series">
+  <span class="genre">開催時期：${esc(s.when)}</span>
+  <h3>${esc(s.name)}</h3>
+  <p class="meta"><span>${esc(s.gist)}</span></p>
+  <p class="meta"><span class="k">開催実績</span><span>${s.years.map((y) => `${y}年`).join("・")}</span></p>
+  <p class="meta"><span class="k">直近</span><span><a href="events.html#${esc(s.latest.id)}">${esc(s.latest.title)}</a>（${esc(C.fmtDate(s.latest.dateStart))}）</span></p>${img ? "\n  " + img : ""}
+</article>`;
+  }).join("\n");
+
+  // ---- お問い合わせ（公式LINEが主・メールが副）----
+  const subject = "【協賛・ブースのご相談】";
+  const bodyTpl = "団体名：\nご連絡先：\nご希望のイベント：\n企画の概要：\n";
+  const mailto = `mailto:${site.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyTpl)}`;
+
+  const content = `
+<section class="block"><div class="container">
+  <div class="section-head"><h2>協賛・PRブースのご案内</h2><span class="en">SPONSOR</span></div>
+  <p class="lead">あづまテラス（${esc(site.name)}）のイベントは、地域の企業・団体の皆さまに「商店街に集まる人たちへ直接届ける機会」として開かれています。新製品のお披露目・サンプリング・体験ブースなど、地域と一緒に楽しめる企画を歓迎します。地域と一緒に盛り上げませんか。</p>
+  ${highlightsHtml}
+  <div class="section-head" style="margin-top:24px"><h2 style="font-size:1.05rem">年間イベント</h2></div>
+  <div class="grid">${seriesHtml}</div>
+  <div class="section-head" style="margin-top:24px"><h2 style="font-size:1.05rem">ご一緒いただける形（例）</h2></div>
+  <ul class="sp-list">
+    <li><b>協賛</b>（冠協賛・景品のご提供）</li>
+    <li><b>製品サンプリング</b>（例：とうもろこしまつりでのとうもろこし関連商品の配布・試食）</li>
+    <li><b>PRブース・体験コーナー</b>（ワークショップなど）</li>
+    <li><b>新商品のお披露目</b>（キッチンカーなど）</li>
+    <li><b>地域団体・学校の参加</b>（ステージ参加など）</li>
+  </ul>
+  <p>上記以外のご提案もお気軽にご相談ください。</p>
+  <div class="section-head" style="margin-top:24px"><h2 style="font-size:1.05rem">ご相談の流れ</h2></div>
+  <ol class="sp-flow">
+    <li>ご相談（公式LINE、またはメール）</li>
+    <li>打ち合わせ（内容・時期・場所のすり合わせ）</li>
+    <li>当日</li>
+  </ol>
+  <p>所要時間・費用などは、企画の内容によりご相談のうえで決めています。</p>
+  <div class="section-head" style="margin-top:24px"><h2 style="font-size:1.05rem">お問い合わせ</h2></div>
+  <p>お問い合わせは<b>公式LINE</b>からお気軽にどうぞ。</p>
+  ${lineCta()}
+  <p class="sp-mail">メールでのご相談は <a href="${esc(mailto)}">${esc(site.email)}</a> まで（件名「${esc(subject)}」と記入例が入った状態で開きます）。</p>
+</div></section>
+`;
+  const org = {
+    "@type": "Organization",
+    name: site.name,
+    alternateName: site.alternateName,
+    url: `${BASE}/`,
+    email: site.email,
+    contactPoint: { "@type": "ContactPoint", contactType: "sponsorship", email: site.email, url: site.lineUrl, availableLanguage: "ja" },
+  };
+  const webPage = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "協賛・PRブースのご案内",
+    url: `${BASE}/sponsor`,
+    description: "地域の企業・団体向けに、あづまテラスのイベントでの協賛・PRブース・サンプリングをご案内するページです。",
+    publisher: org,
+    about: org,
+  };
+  const description = `地域の企業・団体向けの協賛・PRブースのご案内。あづまテラス（${site.name}）の年間イベント（${series.map((s) => s.name).join("・")}）で、協賛・製品サンプリング・PRブース・新商品のお披露目をご相談いただけます。`;
+  return layout({ title: "協賛・PRブースのご案内", description, active: "sponsor.html", jsonld: [SC, webPage], content }, site);
+}
+
 function groupedShops(list, groupFn, groups) {
   return groups
     .map(({ key, title, cls }) => {
@@ -453,6 +575,7 @@ function pageAbout() {
 
   <div class="section-head" style="margin-top:16px"><h2 style="font-size:1.05rem">お問い合わせ</h2></div>
   <p>お問い合わせは公式LINE、またはメール <a href="mailto:${esc(site.email)}">${esc(site.email)}</a> よりお気軽にどうぞ。</p>
+  <p>企業・団体の皆さまの協賛・PRブース・サンプリングのご相談は、<a href="sponsor.html">協賛・PRブースのご案内</a>をご覧ください。</p>
   ${lineCta()}
 </div></section>
 `;
@@ -502,6 +625,7 @@ function build() {
     "medical.html": pageMedical(),
     "access.html": pageAccess(),
     "guidelines.html": pageGuidelines(),
+    "sponsor.html": pageSponsor(),
     "about.html": pageAbout(),
   };
   for (const c of campaigns) pages[c.page] = pageCampaign(c);
