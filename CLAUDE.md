@@ -24,7 +24,7 @@
 ### 実行するもの
 - 検品スクリプト: `scripts/verify.mjs`（1ファイルに集約）。`npm run verify`（= `node build.js && node scripts/verify.mjs`）で実行。
 - 判定は **PASS / FAIL / WARN** の3段階。**1つでも FAIL なら終了コード1**。**WARN は push を止めない（終了コード0）が、report に必ず載せる**（該当内容と、裁定が要るかどうか）。項目7の「画像1MB超」も同じく非致命の警告として出力される。
-- 検品項目（全21項目・2026-10-10 時点）:
+- 検品項目（全22項目・2026-10-10 時点）:
   1. `dist/` に **基本8ページ**（index/events/shops/medical/access/guidelines/sponsor/about。sponsor は 2026-10-10 追加）＋**参加店一覧ページ**（`data/campaigns.json` の slug ごと・2026-10-09 追加）が存在
   2. 全ページの内部リンク切れゼロ（assets含む。Vercel 計測タグのパス1本のみ除外＝§6）
   3. 全 JSON-LD ブロックがパース成功
@@ -46,6 +46,7 @@
   19. **参加店一覧の shopId 参照**（FAIL）: `data/campaigns.json` の各参加店の `shopId` が `shops.json` に全件存在し、同じ一覧の中で重複していない（参照切れ＝載るはずの店が載らない事故を防ぐ・2026-10-09 追加）
   20. **参加店一覧の商品券利用期間の形式と前後**（FAIL）: `data/campaigns.json` の `voucherFrom`（日付または `YYYY-MM-DDTHH:MM+09:00`）と `voucherUntil`（日付）がそろっていて、形式が正しく、期限が開始より後である（期限後の自動切り替えが働く前提を守る・2026-10-09 追加）
   21. **協賛ページの問い合わせ導線**（FAIL）: `/sponsor` に公式LINE（site.json の lineUrl）へのリンクと、件名入りの mailto リンクの両方がある（企業・団体からの相談の入口を守る・2026-10-10 追加）
+  22. **イベントのメディア掲載（press）の形式**（FAIL）: `data/events.json` の `press`（外部記事へのリンク。**リンクのみで本文・写真は転載しない**）の各件が、url が https で始まり、date が `YYYY-MM-DD`、source・title が空でない（2026-10-10 追加）
 - ⚠️旧記述の訂正（2026-09-21・体制同期案件 第3段）: 本節の検品項目は長く次の記載のままで、verify.mjs の実態（15項目）と食い違っていた。
   - ~~検品項目（1つでもFAILなら終了コード1）: 1〜6 の6項目~~ → 実態は 15項目（項目7〜15 は 2026-07〜08 に追加されたが文書に反映されていなかった）。今回 16・17 を加えて **17項目**。
   - ~~1. `dist/` に6ページ（index/events/shops/medical/access/about）が存在~~ → 7ページ（guidelines 含む）。

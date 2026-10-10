@@ -113,6 +113,16 @@ function shopJsonLd(s, site) {
 // schema.org dayOfWeek 用の曜日名変換
 const DAY_FULL = { Mo: "Monday", Tu: "Tuesday", We: "Wednesday", Th: "Thursday", Fr: "Friday", Sa: "Saturday", Su: "Sunday" };
 
+// メディア掲載（外部記事へのリンクのみ。本文・写真は転載しない・2026-10-10）
+function pressLine(e) {
+  if (!Array.isArray(e.press) || !e.press.length) return "";
+  const links = e.press.map((p) => {
+    const label = p.kind === "photo" ? `（写真）「${p.title}」` : `「${p.title}」`;
+    return `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.source)}${esc(label)}</a>（${esc(fmtDate(p.date))}）`;
+  });
+  return `\n  <p class="press"><span class="k">メディア掲載</span>${links.join("／")}</p>`;
+}
+
 // イベントカード
 function eventCard(e) {
   const label = e.status === "upcoming" ? "開催予定" : e.status === "ongoing" ? "開催中" : "終了";
@@ -126,7 +136,7 @@ function eventCard(e) {
   <h3>${esc(e.title)}</h3>
   <p class="when">${esc(when)}</p>${timeLine}
   <p class="where">会場：${esc(e.venue)}</p>
-  <p>${esc(e.body || e.summary)}</p>${e.campaignLink ? `\n  <p class="camp-link"><a href="${esc(e.campaignLink.href)}">${esc(e.campaignLink.label)} →</a></p>` : ""}${flyer}
+  <p>${esc(e.body || e.summary)}</p>${pressLine(e)}${e.campaignLink ? `\n  <p class="camp-link"><a href="${esc(e.campaignLink.href)}">${esc(e.campaignLink.label)} →</a></p>` : ""}${flyer}
 </article>`;
 }
 
@@ -159,6 +169,9 @@ function eventJsonLd(e, site) {
   };
   if (e.image) obj.image = `https://www.azuma-terrace.com/assets/events/${e.image}`;
   if (typeof e.isAccessibleForFree === "boolean") obj.isAccessibleForFree = e.isAccessibleForFree;
+  if (Array.isArray(e.press) && e.press.length) {
+    obj.subjectOf = e.press.map((p) => ({ "@type": p.kind === "photo" ? "CreativeWork" : "NewsArticle", url: p.url }));
+  }
   return obj;
 }
 

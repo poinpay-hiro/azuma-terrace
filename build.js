@@ -351,7 +351,12 @@ function pageSponsor() {
   const tiles = [];
   if (H.lineFriends) {
     const [y, m] = String(H.lineFriends.asOf || "").split("-").map(Number);
-    tiles.push({ value: `${nf(H.lineFriends.count)}人${H.lineFriends.over ? "超" : ""}`, label: "公式LINE 友だち", note: y && m ? `${y}年${m}月時点` : "" });
+    const when = y && m ? `${y}年${m}月時点` : "";
+    tiles.push({
+      value: `${H.lineFriends.approx ? "約" : ""}${nf(H.lineFriends.count)}人${H.lineFriends.over ? "超" : ""}`,
+      label: "公式LINE 友だち",
+      note: [H.lineFriends.note, when].filter(Boolean).join("／"),
+    });
   }
   if (H.cornSoldOut) {
     const ev = evById(H.cornSoldOut.eventId);
@@ -360,7 +365,8 @@ function pageSponsor() {
   if (H.siteVisitors) {
     const ev = evById(H.siteVisitors.eventId);
     const evName = ev ? ev.title.replace(/^あづまテラス\s*/, "") : "まつり";
-    tiles.push({ value: `約${nf(H.siteVisitors.approx)}人`, label: `公式サイト訪問（${evName}期間の約${H.siteVisitors.periodWeeks}週間）`, note: `自前計測（${H.siteVisitors.source}・実測${nf(H.siteVisitors.measured)}人）` });
+    // 計測ツール名は表示しない（site.json の internalMemo にのみ記録・2026-10-10 オーナー指示）
+    tiles.push({ value: `約${nf(H.siteVisitors.approx)}人`, label: `公式サイト訪問（${evName}期間）`, note: `公式サイトの実測値（約${H.siteVisitors.periodWeeks}週間・実測${nf(H.siteVisitors.measured)}人）` });
   }
   const highlightsHtml = tiles.length
     ? `<div class="sp-stats">${tiles.map((t) => `<div class="sp-stat"><b>${esc(t.value)}</b><span>${esc(t.label)}</span>${t.note ? `<small>${esc(t.note)}</small>` : ""}</div>`).join("")}</div>`
@@ -386,8 +392,9 @@ function pageSponsor() {
     const withImage = list.filter((e) => e.image).sort((a, b) => (a.dateStart < b.dateStart ? 1 : -1))[0];
     const years = [...new Set(list.map((e) => Number(e.dateStart.slice(0, 4))))].sort((a, b) => a - b);
     const first = String(latest.summary || "").split("。")[0];
+    const press = list.flatMap((e) => (e.press || []).map((p) => ({ ...p }))).sort((a, b) => (a.kind === "photo") - (b.kind === "photo") || (a.date < b.date ? 1 : -1))[0];
     return {
-      name, months, latest, withImage, years,
+      name, months, latest, withImage, years, press,
       when: months.length > 1 && months[months.length - 1] - months[0] === months.length - 1 ? `${months[0]}〜${months[months.length - 1]}月` : `${months.join("・")}月`,
       gist: first.length > 70 ? first.slice(0, 70) + "…" : first,
     };
@@ -401,7 +408,7 @@ function pageSponsor() {
   <h3>${esc(s.name)}</h3>
   <p class="meta"><span>${esc(s.gist)}</span></p>
   <p class="meta"><span class="k">開催実績</span><span>${s.years.map((y) => `${y}年`).join("・")}</span></p>
-  <p class="meta"><span class="k">直近</span><span><a href="events.html#${esc(s.latest.id)}">${esc(s.latest.title)}</a>（${esc(C.fmtDate(s.latest.dateStart))}）</span></p>${img ? "\n  " + img : ""}
+  <p class="meta"><span class="k">直近</span><span><a href="events.html#${esc(s.latest.id)}">${esc(s.latest.title)}</a>（${esc(C.fmtDate(s.latest.dateStart))}）</span></p>${s.press ? `\n  <p class="meta"><span class="k">メディア掲載</span><span><a href="${esc(s.press.url)}" target="_blank" rel="noopener">${esc(s.press.source)}</a>（${Number(s.press.date.slice(0, 4))}年${Number(s.press.date.slice(5, 7))}月）</span></p>` : ""}${img ? "\n  " + img : ""}
 </article>`;
   }).join("\n");
 

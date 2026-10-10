@@ -27,8 +27,8 @@
   ],
   "highlights": {
     "note": "協賛・PRブース案内（/sponsor）に表示する実績。オーナー提供の一次情報とサイト自前の計測値のみ（2026-10-10 オーナー指示）。文面は build 時に組み立てる",
-    "lineFriends": { "count": 1000, "over": true, "asOf": "2026-10" },
+    "lineFriends": { "count": 1000, "approx": true, "asOf": "2026-10", "note": "ブロックが少なく、近隣地域への高いリーチ" },
     "cornSoldOut": { "eventId": "corn-matsuri-2026", "count": 2000, "hours": 1.5 },
-    "siteVisitors": { "eventId": "corn-matsuri-2026", "approx": 2000, "measured": 1952, "periodWeeks": 3, "source": "Vercel Web Analytics" }
+    "siteVisitors": { "eventId": "corn-matsuri-2026", "approx": 2000, "measured": 1952, "periodWeeks": 3, "internalMemo": "計測ツール: Vercel Web Analytics（ページには表示しない・2026-10-10 オーナー指示）" }
   }
 }

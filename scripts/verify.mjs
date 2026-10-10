@@ -479,6 +479,28 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
   check("協賛ページの問い合わせ導線(公式LINE＋件名入りmailto)", problems.length === 0, problems.length ? problems.join(" / ") : "公式LINE・件名入り mailto とも存在");
 }
 
+// ============ 22. イベントのメディア掲載（press）の形式 ============
+// 外部記事へのリンクのみを載せる（本文・写真は転載しない・2026-10-10）。url が https で始まり、date が日付形式で、
+// source・title が空でないこと。形式が崩れると表示や JSON-LD（subjectOf）が壊れるため FAIL。
+{
+  const problems = [];
+  let evs = [];
+  try { evs = JSON.parse(fs.readFileSync(path.join(DATA, "events.json"), "utf8")); } catch (e) { problems.push("events.json を読めない"); }
+  let n = 0;
+  for (const e of evs) {
+    if (e.press === undefined) continue;
+    if (!Array.isArray(e.press)) { problems.push(`${e.id}: press が配列でない`); continue; }
+    for (const p of e.press) {
+      n++;
+      if (!/^https:\/\//.test(String(p.url || ""))) problems.push(`${e.id}: url が https で始まらない`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(p.date || ""))) problems.push(`${e.id}: date の形式（YYYY-MM-DD）`);
+      if (!p.source || !p.title) problems.push(`${e.id}: source または title が空`);
+    }
+  }
+  check("イベントのメディア掲載(press)の形式", problems.length === 0,
+    problems.length ? problems.slice(0, 6).join(" / ") : n ? `${n}件（https・日付形式・出典と見出しあり）` : "該当なし（掲載の記載なし）");
+}
+
 // ============ 出力 ============
 const pad = Math.max(...results.map((r) => r.name.length));
 const TAG = { PASS: "PASS ✓", FAIL: "FAIL ✗", WARN: "WARN △" };
