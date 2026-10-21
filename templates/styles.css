@@ -203,7 +203,7 @@ section.block { padding: 26px 0; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---- 協賛・PRブースのご案内（/sponsor） ---- */
-.sp-stats { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 0 0 8px; }
+.sp-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 0 0 8px; } /* 実績4つ：スマホ・タブレット＝2×2（2026-10-21） */
 .sp-stat { background: var(--card); border-radius: var(--radius); padding: 12px 14px; text-align: center; box-shadow: 0 2px 10px rgba(90,80,40,.06); border-top: 4px solid var(--yellow); }
 .sp-stat b { display: block; font-size: 1.7rem; color: var(--green-dark); line-height: 1.2; }
 .sp-stat span { display: block; font-size: .9rem; color: var(--ink); font-weight: 700; margin-top: 2px; }
@@ -213,7 +213,7 @@ section.block { padding: 26px 0; }
 .sp-list, .sp-flow { margin: 0 0 10px; padding-left: 1.4em; }
 .sp-list li, .sp-flow li { margin: 4px 0; }
 .sp-mail { font-size: .92rem; color: var(--ink-soft); text-align: center; }
-@media (min-width: 720px) { .sp-stats { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 960px) { .sp-stats { grid-template-columns: repeat(4, 1fr); } } /* パソコン＝横に4つ */
 
 /* ---- 印刷（企業の担当者が社内共有で印刷しても崩れないように・2026-10-10） ---- */
 @media print {

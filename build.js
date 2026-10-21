@@ -368,6 +368,12 @@ function pageSponsor() {
     // 計測ツール名は表示しない（site.json の internalMemo にのみ記録・2026-10-10 オーナー指示）
     tiles.push({ value: `約${nf(H.siteVisitors.approx)}人`, label: `公式サイト訪問（${evName}期間）`, note: `公式サイトの実測値（約${H.siteVisitors.periodWeeks}週間・実測${nf(H.siteVisitors.measured)}人）` });
   }
+  if (H.paradeCrowd) {
+    // 出典の報道に合わせた言い方（「サンバパレードの沿道に約3,000人」）。出典名と日付を小さく併記（2026-10-21 オーナー指示）
+    const ev = evById(H.paradeCrowd.eventId);
+    const evName = ev ? `${ev.series || ev.title.replace(/^あづまテラス\s*/, "")}${ev.series ? ev.dateStart.slice(0, 4) : ""}` : ""; // 例: ハロウィン2026
+    tiles.push({ value: `約${nf(H.paradeCrowd.approx)}人`, label: `${evName ? evName + " " : ""}${H.paradeCrowd.what}`, note: `${H.paradeCrowd.source}報道（${C.fmtDate(H.paradeCrowd.date)}）` });
+  }
   const highlightsHtml = tiles.length
     ? `<div class="sp-stats">${tiles.map((t) => `<div class="sp-stat"><b>${esc(t.value)}</b><span>${esc(t.label)}</span>${t.note ? `<small>${esc(t.note)}</small>` : ""}</div>`).join("")}</div>`
     : "";

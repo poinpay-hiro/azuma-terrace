@@ -28,7 +28,7 @@
       { "shopId": "rekimama", "stampRally": true, "voucher": false, "isNew": false },
       { "shopId": "dekanoren", "stampRally": true, "voucher": true, "isNew": false },
       { "shopId": "warauten", "stampRally": true, "voucher": true, "isNew": false },
-      { "shopId": "xiaolongbao-shinka", "stampRally": true, "voucher": true, "isNew": true },
+      { "shopId": "shinka", "stampRally": true, "voucher": true, "isNew": true },
       { "shopId": "ishihara-toyo", "stampRally": true, "voucher": true, "isNew": true }
     ]
   }
