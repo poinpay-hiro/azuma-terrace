@@ -31,5 +31,44 @@
       { "shopId": "shinka", "stampRally": true, "voucher": true, "isNew": true },
       { "shopId": "ishihara-toyo", "stampRally": true, "voucher": true, "isNew": true }
     ]
+  },
+  {
+    "slug": "tachiazu2026",
+    "title": "たちあづフェス ガラポン景品 商品券 取扱店",
+    "columns": ["voucher"],
+    "voucherLabel": "商品券",
+    "voucherEndedLabel": "この商品券",
+    "voucherFrom": "2026-11-13",
+    "voucherUntil": "2026-12-31",
+    "headline": "この商品券が使えるお店",
+    "howTo": [
+      "お店の人に、この商品券を見せてください",
+      "使える期間：{until}まで"
+    ],
+    "voucherNoteTemplate": "この商品券は、たちあづフェスのガラポン景品です。{until}まで、上記の取扱店でご利用いただけます",
+    "notes": [
+      "取扱店は変更になることがあります。ご利用前にこのページで最新の取扱店をご確認ください"
+    ],
+    "participants": [
+      { "shopId": "kitchen-tani", "voucher": true },
+      { "shopId": "uogin-stand", "voucher": true },
+      { "shopId": "uzu-shokudo", "voucher": true },
+      { "shopId": "canary", "voucher": true },
+      { "shopId": "kamepan-tachibana", "voucher": true },
+      { "shopId": "kitchen-kameya", "voucher": true },
+      { "shopId": "cleaning-hirata", "voucher": true },
+      { "shopId": "seven-eleven-bunka2", "voucher": true },
+      { "shopId": "tachibanatei", "voucher": true },
+      { "shopId": "tanoshimi", "voucher": true },
+      { "shopId": "china-doll", "voucher": true },
+      { "shopId": "pinocchio", "voucher": true },
+      { "shopId": "petit-bonheur", "voucher": true },
+      { "shopId": "mr-danger", "voucher": true },
+      { "shopId": "yabunaka", "voucher": true },
+      { "shopId": "dekanoren", "voucher": true },
+      { "shopId": "warauten", "voucher": true },
+      { "shopId": "shinka", "voucher": true },
+      { "shopId": "ishihara-toyo", "voucher": true }
+    ]
   }
 ]

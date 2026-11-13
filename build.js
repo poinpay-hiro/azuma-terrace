@@ -72,19 +72,27 @@ function readImageSize(file) {
 // イベントの参加店一覧（data/campaigns.json → /<slug> ページを自動生成・CLAUDE.md §5 2026-10-09）。
 // 店は shops.json の id で参照し、店名・住所・電話はここで shops.json から引く（campaigns.json に複製しない）。
 // 見つからない id があれば build を止める（推測で紐づけない）。集計（参加数など）は固定で持たず、ここで算出する。
+// columns: 一覧に出す列（stampRally / voucher）。省略時は両方（ハロウィン2026 の型）。未知の値は build を止める（2026-11-13）。
+const CAMPAIGN_COLUMNS = ["stampRally", "voucher"];
 const campaigns = readJSON("campaigns.json").map((c) => {
   const missing = c.participants.filter((p) => !shops.some((s) => s.id === p.shopId)).map((p) => p.shopId);
   if (missing.length) throw new Error(`campaigns.json（${c.slug}）の shopId が shops.json にありません: ${missing.join(", ")}`);
+  const columns = c.columns || CAMPAIGN_COLUMNS;
+  const unknown = columns.filter((k) => !CAMPAIGN_COLUMNS.includes(k));
+  if (!columns.length || unknown.length) throw new Error(`campaigns.json（${c.slug}）の columns が不正です: ${JSON.stringify(c.columns)}`);
   return {
     ...c,
     page: `${c.slug}.html`,
+    columns,
     entries: c.participants.map((p) => ({ ...p, shop: shops.find((s) => s.id === p.shopId) })),
     counts: {
       stampRally: c.participants.filter((p) => p.stampRally).length,
       voucher: c.participants.filter((p) => p.voucher).length,
       isNew: c.participants.filter((p) => p.isNew).length,
     },
-    ended: c.period.end < BUILD_DATE_JST, // 期間を過ぎたら冒頭に「終了しました」を自動表示
+    // イベント（eventId）のある一覧だけ、期間を過ぎたら冒頭に「このイベントは終了しました」を自動表示。
+    // イベントの無い一覧（例: たちあづフェスの紙商品券）は出さず、商品券の期限（voucherEnded）だけで終了を表示する（2026-11-13）。
+    ended: Boolean(c.eventId && c.period && c.period.end < BUILD_DATE_JST),
     // デジタル商品券の利用期限（voucherUntil・日付）。日本時間のビルド日が過ぎたら注記を「終了しました」に切り替える。
     // イベント本体の ended とは独立に判定する（2026-10-09 オーナー裁定・ops_orders id=29）。
     voucherEnded: c.voucherUntil ? c.voucherUntil < BUILD_DATE_JST : false,
@@ -279,43 +287,59 @@ function pageCampaign(c) {
     : "";
   // デジタル商品券の利用期間（日付・時刻は campaigns.json の voucherFrom / voucherUntil から組み立てる。固定文言に書かない）
   const md = (iso) => { const [, m, d] = iso.slice(0, 10).split("-").map(Number); return { m, d }; };
+  // 文言の既定値はハロウィン2026 の型。campaigns.json の voucherLabel / voucherEndedLabel / voucherNoteTemplate で上書きできる。
+  const voucherLabel = c.voucherLabel || "デジタル商品券";
+  const voucherEndedLabel = c.voucherEndedLabel || voucherLabel;
+  const untilText = c.voucherUntil ? `${C.fmtDate(c.voucherUntil)}（${dayOf(c.voucherUntil)}）` : ""; // 例: 2026年12月31日（木）
+  const fill = (tpl) => String(tpl).replace(/\{until\}/g, untilText);
   let voucherPeriod = "", voucherNote = "";
   if (c.voucherFrom && c.voucherUntil) {
     const f = md(c.voucherFrom), u = md(c.voucherUntil);
     const fromTime = c.voucherFrom.length > 10 ? c.voucherFrom.slice(11, 16) : "";
     const fromDay = c.voucherFrom.slice(0, 10), untilDay = c.voucherUntil;
     if (c.voucherEnded) {
-      voucherPeriod = `<p class="camp-voucher ended">デジタル商品券の利用期間は終了しました（〜${esc(C.fmtDate(untilDay))}）</p>`;
-      voucherNote = `<p class="camp-note">※デジタル商品券の利用期間は終了しました（〜${esc(C.fmtDate(untilDay))}）</p>`;
+      voucherPeriod = `<p class="camp-voucher ended">${esc(voucherEndedLabel)}の利用期間は終了しました（〜${esc(C.fmtDate(untilDay))}）</p>`;
+      voucherNote = `<p class="camp-note">※${esc(voucherEndedLabel)}の利用期間は終了しました（〜${esc(C.fmtDate(untilDay))}）</p>`;
     } else {
       voucherPeriod = `<p class="camp-voucher">商品券の利用期間：<b>${f.m}/${f.d}${fromTime ? " " + esc(fromTime) : ""}〜${u.m}/${u.d}</b></p>`;
-      voucherNote = `<p class="camp-note">※デジタル商品券はガラポン抽選の景品です。${f.m}月${f.d}日（${dayOf(fromDay)}）${fromTime ? esc(fromTime) : ""}から${u.m}月${u.d}日（${dayOf(untilDay)}）まで、上記の取扱店でご利用いただけます（当日の会場ではご利用いただけません）</p>`;
+      voucherNote = c.voucherNoteTemplate
+        ? `<p class="camp-note">※${esc(fill(c.voucherNoteTemplate))}</p>`
+        : `<p class="camp-note">※デジタル商品券はガラポン抽選の景品です。${f.m}月${f.d}日（${dayOf(fromDay)}）${fromTime ? esc(fromTime) : ""}から${u.m}月${u.d}日（${dayOf(untilDay)}）まで、上記の取扱店でご利用いただけます（当日の会場ではご利用いただけません）</p>`;
     }
   }
+  // 集計は columns にある列だけ。新規参加は1店以上いるときだけ出す（NEW バッジと凡例も同じ条件）
+  const showNew = c.counts.isNew > 0;
+  const stats = [
+    ...(c.columns.includes("stampRally") ? [{ n: c.counts.stampRally, label: "スタンプラリー参加店" }] : []),
+    ...(c.columns.includes("voucher") ? [{ n: c.counts.voucher, label: `${voucherLabel}取扱店` }] : []),
+    ...(showNew ? [{ n: c.counts.isNew, label: "新規参加店" }] : []),
+  ];
+  // 冒頭の大きな見出しと使い方（QR から開く人向け・campaigns.json の headline / howTo。{until} は期限に置き換え）
+  const headlineHtml = c.headline
+    ? `\n  <p class="camp-headline">${esc(c.headline)}</p>${(c.howTo || []).length ? `\n  <ul class="camp-howto">${c.howTo.map((h) => `<li>${esc(fill(h))}</li>`).join("")}</ul>` : ""}`
+    : "";
   const mark = (on, label) => `<span class="camp-mark ${on ? "on" : "off"}">${esc(label)}<b>${on ? "○" : "—"}</b><span class="sr">${on ? "対象" : "対象外"}</span></span>`;
   const cards = c.entries.map(({ shop: s, stampRally, voucher, isNew }) => {
     const href = `${s.category === "medical" ? "medical" : "shops"}.html#${s.id}`;
     const rows = [`<p class="meta"><span class="k">住所</span><span>${esc(s.address)}</span></p>`];
     if (s.tel) rows.push(`<p class="meta"><span class="k">電話</span>${C.telLink(s.tel)}</p>`);
     return `<article class="card camp-card">
-  <span class="genre">${esc(s.genre)}</span>${isNew ? ` <span class="camp-new">NEW</span>` : ""}
+  <span class="genre">${esc(s.genre)}</span>${showNew && isNew ? ` <span class="camp-new">NEW</span>` : ""}
   <h3><a href="${esc(href)}">${esc(s.name)}</a></h3>
-  <p class="camp-marks">${mark(stampRally, "スタンプラリー")}${mark(voucher, "デジタル商品券")}</p>
+  <p class="camp-marks">${c.columns.includes("stampRally") ? mark(stampRally, "スタンプラリー") : ""}${c.columns.includes("voucher") ? mark(voucher, voucherLabel) : ""}</p>
   ${rows.join("\n  ")}
 </article>`;
   }).join("\n");
   const content = `
 <section class="block"><div class="container">
-  <div class="section-head"><h2>${esc(c.title)}</h2><span class="en">STAMP RALLY</span></div>
+  <div class="section-head"><h2>${esc(c.title)}</h2><span class="en">${c.columns.includes("stampRally") ? "STAMP RALLY" : "VOUCHER"}</span></div>
   ${ended}
-  ${ev ? `<p class="lead">${esc(ev.title)}<br>開催日：${esc(when)}<br>会場：${esc(ev.venue)}<br><a href="events.html#${esc(ev.id)}">イベントの詳細を見る →</a></p>` : ""}
-  <div class="camp-stats">
-    <div class="camp-stat"><b>${c.counts.stampRally}</b><span>スタンプラリー参加店</span></div>
-    <div class="camp-stat"><b>${c.counts.voucher}</b><span>デジタル商品券取扱店</span></div>
-    <div class="camp-stat"><b>${c.counts.isNew}</b><span>新規参加店</span></div>
+  ${ev ? `<p class="lead">${esc(ev.title)}<br>開催日：${esc(when)}<br>会場：${esc(ev.venue)}<br><a href="events.html#${esc(ev.id)}">イベントの詳細を見る →</a></p>` : ""}${headlineHtml}
+  <div class="camp-stats${stats.length === 3 ? "" : " n" + stats.length}">
+${stats.map((t) => `    <div class="camp-stat"><b>${t.n}</b><span>${esc(t.label)}</span></div>`).join("\n")}
   </div>
   ${voucherPeriod}
-  <p class="camp-legend">○＝対象　—＝対象外　<span class="camp-new">NEW</span>＝今回から参加</p>
+  <p class="camp-legend">○＝対象　—＝対象外${showNew ? `　<span class="camp-new">NEW</span>＝今回から参加` : ""}</p>
   <div class="grid">${cards}</div>
   ${voucherNote}
   ${(c.notes || []).map((n) => `<p class="camp-note">※${esc(n)}</p>`).join("\n  ")}
@@ -334,8 +358,11 @@ ${lineCta()}
       url: `${BASE}/${s.category === "medical" ? "medical" : "shops"}#${s.id}`,
     })),
   };
-  const description = `${c.title}。スタンプラリー参加店${c.counts.stampRally}店・デジタル商品券取扱店${c.counts.voucher}店（うち新規参加${c.counts.isNew}店）の一覧です。`;
-  return layout({ title: c.title, description, active: c.page, ogImage: "og-events.jpg", jsonld: [SC, itemList], content }, site);
+  const description = c.columns.includes("stampRally")
+    ? `${c.title}。スタンプラリー参加店${c.counts.stampRally}店・デジタル商品券取扱店${c.counts.voucher}店（うち新規参加${c.counts.isNew}店）の一覧です。`
+    : `${c.title}。${voucherLabel}が使えるお店${c.counts.voucher}店の一覧です（${untilText}まで）。`;
+  // OGP：イベントのある一覧はイベントのチラシ（og-events）、イベントの無い一覧は既定（og-default）
+  return layout({ title: c.title, description, active: c.page, ogImage: c.eventId ? "og-events.jpg" : "og-default.jpg", jsonld: [SC, itemList], content }, site);
 }
 
 // 企業・団体向け「協賛・PRブースのご案内」（/sponsor・2026-10-10 オーナー指示・ops_orders id=30）。

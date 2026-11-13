@@ -501,6 +501,26 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
     problems.length ? problems.slice(0, 6).join(" / ") : n ? `${n}件（https・日付形式・出典と見出しあり）` : "該当なし（掲載の記載なし）");
 }
 
+// ============ 23. 参加店一覧の列の設定（columns）============
+// 一覧に出す列（stampRally / voucher）。省略時は両方。未知の値・空の配列は表示が壊れるため FAIL（2026-11-13）。
+// あわせて、列に無い印（例: columns が voucher だけなのに stampRally: true）が participants に残っていないかも見る。
+{
+  const KNOWN = ["stampRally", "voucher"];
+  const problems = [];
+  for (const c of CAMPAIGNS || []) {
+    if (c.columns === undefined) continue;
+    if (!Array.isArray(c.columns) || c.columns.length === 0) { problems.push(`${c.slug}: columns が空または配列でない`); continue; }
+    const unknown = c.columns.filter((k) => !KNOWN.includes(k));
+    if (unknown.length) problems.push(`${c.slug}: 未知の列 ${unknown.join(",")}`);
+    for (const k of KNOWN.filter((k) => !c.columns.includes(k))) {
+      const stray = (c.participants || []).filter((p) => p[k] === true).map((p) => p.shopId);
+      if (stray.length) problems.push(`${c.slug}: 列に無い ${k}=true が残っている（${stray.slice(0, 3).join(",")}…）`);
+    }
+  }
+  check("参加店一覧の列の設定(columns)", problems.length === 0,
+    problems.length ? problems.join(" / ") : `${(CAMPAIGNS || []).length}件の一覧で列の設定OK`);
+}
+
 // ============ 出力 ============
 const pad = Math.max(...results.map((r) => r.name.length));
 const TAG = { PASS: "PASS ✓", FAIL: "FAIL ✗", WARN: "WARN △" };
