@@ -521,6 +521,31 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
     problems.length ? problems.join(" / ") : `${(CAMPAIGNS || []).length}件の一覧で列の設定OK`);
 }
 
+// ============ 24. 参加店一覧の注意事項（notices / noticesForShops）============
+// 券面の注意事項（利用者向け notices・店舗向け noticesForShops）。書くなら文字列の配列で、各行が空でないこと（2026-11-14・ops id=37）。
+// あわせて、書いた一覧のページに「ご利用にあたって」の枠が実際に出ているかも見る。
+{
+  const problems = [];
+  let n = 0;
+  for (const c of CAMPAIGNS || []) {
+    let has = false;
+    for (const k of ["notices", "noticesForShops"]) {
+      if (c[k] === undefined) continue;
+      if (!Array.isArray(c[k])) { problems.push(`${c.slug}: ${k} が配列でない`); continue; }
+      const bad = c[k].filter((s) => typeof s !== "string" || s.trim() === "").length;
+      if (bad) problems.push(`${c.slug}: ${k} に空の行が${bad}件`);
+      if (c[k].length) has = true;
+    }
+    if (has) {
+      n++;
+      const f = path.join(DIST, `${c.slug}.html`);
+      if (!fs.existsSync(f) || !fs.readFileSync(f, "utf8").includes('class="camp-notices"')) problems.push(`${c.slug}: ページに注意事項の枠が無い`);
+    }
+  }
+  check("参加店一覧の注意事項(notices)", problems.length === 0,
+    problems.length ? problems.join(" / ") : n ? `${n}件の一覧で注意事項OK（空行なし・ページに枠あり）` : "該当なし（注意事項の記載なし）");
+}
+
 // ============ 出力 ============
 const pad = Math.max(...results.map((r) => r.name.length));
 const TAG = { PASS: "PASS ✓", FAIL: "FAIL ✗", WARN: "WARN △" };

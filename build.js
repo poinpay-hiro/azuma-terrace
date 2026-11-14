@@ -318,6 +318,12 @@ function pageCampaign(c) {
   const headlineHtml = c.headline
     ? `\n  <p class="camp-headline">${esc(c.headline)}</p>${(c.howTo || []).length ? `\n  <ul class="camp-howto">${c.howTo.map((h) => `<li>${esc(fill(h))}</li>`).join("")}</ul>` : ""}`
     : "";
+  // 券面の注意事項（campaigns.json の notices＝利用者向け / noticesForShops＝店舗向け。{until} は期限に置き換え）。
+  // 使い方の直下＝取扱店一覧より上に枠で出す。期限後も残す（終了表示と併存）。無い一覧では何も出さない（2026-11-14・ops id=37）。
+  const noticeList = (arr) => `<ul>${arr.map((n) => `<li>${esc(fill(n))}</li>`).join("")}</ul>`;
+  const noticesHtml = (c.notices || []).length || (c.noticesForShops || []).length
+    ? `\n  <div class="camp-notices">${(c.notices || []).length ? `<p class="camp-notices-h">ご利用にあたって</p>${noticeList(c.notices)}` : ""}${(c.noticesForShops || []).length ? `<p class="camp-notices-sub">お店の方へ</p>${noticeList(c.noticesForShops)}` : ""}</div>`
+    : "";
   const mark = (on, label) => `<span class="camp-mark ${on ? "on" : "off"}">${esc(label)}<b>${on ? "○" : "—"}</b><span class="sr">${on ? "対象" : "対象外"}</span></span>`;
   const cards = c.entries.map(({ shop: s, stampRally, voucher, isNew }) => {
     const href = `${s.category === "medical" ? "medical" : "shops"}.html#${s.id}`;
@@ -334,7 +340,7 @@ function pageCampaign(c) {
 <section class="block"><div class="container">
   <div class="section-head"><h2>${esc(c.title)}</h2><span class="en">${c.columns.includes("stampRally") ? "STAMP RALLY" : "VOUCHER"}</span></div>
   ${ended}
-  ${ev ? `<p class="lead">${esc(ev.title)}<br>開催日：${esc(when)}<br>会場：${esc(ev.venue)}<br><a href="events.html#${esc(ev.id)}">イベントの詳細を見る →</a></p>` : ""}${headlineHtml}
+  ${ev ? `<p class="lead">${esc(ev.title)}<br>開催日：${esc(when)}<br>会場：${esc(ev.venue)}<br><a href="events.html#${esc(ev.id)}">イベントの詳細を見る →</a></p>` : ""}${headlineHtml}${noticesHtml}
   <div class="camp-stats${stats.length === 3 ? "" : " n" + stats.length}">
 ${stats.map((t) => `    <div class="camp-stat"><b>${t.n}</b><span>${esc(t.label)}</span></div>`).join("\n")}
   </div>
