@@ -568,6 +568,7 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
 //  - 電話リンクが shops.json の番号（#17 の allowlist の対象）から組み立てた tel:+81… と一致する
 //  - 経路ボタンが上部・下部の2か所にあり、計測イベント名が付いている
 //  - ロゴを設定したら、H1 の上に画像と alt「<店名> logo」があり、英語の店名の H1 も残っている（2026-11-25 ops id=42）
+//  - 電車での行き方（trainAccess）を設定したら、最寄り駅の行の直後（同じ段落の次の行）に出ている（2026-11-26 ops id=45）
 {
   const problems = [];
   let shops = [];
@@ -589,6 +590,11 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
     const banchi = (String(shop.address).match(/\d+(?:-\d+)+/) || [])[0];
     if (!banchi || !String(l.addressEn || "").includes(banchi)) problems.push(`${l.path}: 英語の住所に shops.json の番地が無い`);
     if (!html.includes(String(l.addressEn))) problems.push(`${l.path}: 英語の住所がページに無い`);
+    // 電車での行き方（trainAccess を設定した場合・2026-11-26 ops id=45）: 最寄り駅の行の直後（同じ段落の次の行）に出ている
+    if ("trainAccess" in l) {
+      if (!String(l.trainAccess || "").trim()) problems.push(`${l.path}: trainAccess が空`);
+      else if (!html.includes(`<p>${l.nearStation}<br>${l.trainAccess}</p>`)) problems.push(`${l.path}: 電車での行き方が最寄り駅の行の直後に無い`);
+    }
     if (shop.tel) {
       const expected = "tel:+81" + shop.tel.replace(/[^\d]/g, "").replace(/^0/, "");
       const telLinks = [...html.matchAll(/href="(tel:[^"]+)"/g)].map((m) => m[1]);

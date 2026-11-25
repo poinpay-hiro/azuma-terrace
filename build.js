@@ -776,7 +776,7 @@ ${JSON.stringify(jsonld, null, 2)}
     ${l.exterior ? `<figure><img src="${esc(img(l.exterior.image))}" width="${ex.width}" height="${ex.height}" loading="lazy" alt="Entrance of ${esc(l.name)} with white UZU curtains"><figcaption>${esc(l.exterior.caption)}</figcaption></figure>` : ""}
     <div>
       <p>${esc(l.addressEn)}</p>
-      <p>${esc(l.nearStation)}</p>
+      <p>${esc(l.nearStation)}${l.trainAccess ? `<br>${esc(l.trainAccess)}` : ""}</p>
       ${telHref ? `<p><a class="tel" href="${esc(telHref)}" data-ev="${esc(l.events.phone)}" data-pos="find">${esc(telText)}</a></p>` : ""}
     </div>
   </div>
