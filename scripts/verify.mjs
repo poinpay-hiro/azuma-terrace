@@ -567,6 +567,7 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
 //  - 英語の住所に、shops.json の住所の番地（例: 2-10-2-101）が含まれる
 //  - 電話リンクが shops.json の番号（#17 の allowlist の対象）から組み立てた tel:+81… と一致する
 //  - 経路ボタンが上部・下部の2か所にあり、計測イベント名が付いている
+//  - ロゴを設定したら、H1 の上に画像と alt「<店名> logo」があり、英語の店名の H1 も残っている（2026-11-25 ops id=42）
 {
   const problems = [];
   let shops = [];
@@ -596,6 +597,15 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
     const ev = (l.events && l.events.directions) || "";
     const btn = (pos) => new RegExp(`<a class="dir" href="https://www\\.google\\.com/maps/[^"]+"[^>]*data-ev="${ev}" data-pos="${pos}"`).test(html);
     if (!ev || !btn("top") || !btn("bottom")) problems.push(`${l.path}: 経路ボタン（上部・下部・計測イベント名つき）がそろっていない`);
+    // ロゴ（logo を設定した場合・2026-11-25 ops id=42）: H1 の上に画像と alt「<店名> logo」があり、英語の店名の H1 も残っている
+    if (l.logo) {
+      const logoAt = html.indexOf(`<img class="logo" src="/assets/${l.imageDir}/${l.logo}"`);
+      const h1At = html.indexOf(`<h1>${l.name}</h1>`);
+      if (logoAt < 0) problems.push(`${l.path}: ロゴの画像が無い`);
+      else if (!html.slice(logoAt, html.indexOf(">", logoAt)).includes(`alt="${l.name} logo"`)) problems.push(`${l.path}: ロゴの alt が「${l.name} logo」でない`);
+      if (h1At < 0) problems.push(`${l.path}: 英語の店名の H1 が無い`);
+      else if (logoAt > h1At) problems.push(`${l.path}: ロゴが H1 の上に無い`);
+    }
   }
   const n = (LANDINGS || []).length;
   check("広告の飛び先ページ(隠れ・住所/電話の整合)", problems.length === 0,

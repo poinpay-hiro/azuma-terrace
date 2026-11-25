@@ -724,7 +724,7 @@ body{margin:0;background:#faf7f2;color:#2a2622;font:16px/1.55 -apple-system,Blin
 main{max-width:540px;margin:0 auto;padding:20px 16px 32px}
 h1{font-size:2rem;line-height:1.15;margin:4px 0 6px;letter-spacing:.01em}
 h2{font-size:1.15rem;margin:26px 0 10px}
-.logo{display:block;max-width:240px;height:auto;margin:0 0 8px}
+.logo{display:block;width:180px;max-width:100%;height:auto;margin:0 0 10px}
 .tag{margin:0 0 14px;color:#5c544b}
 .dir{display:block;text-align:center;background:#1f6f43;color:#fff;text-decoration:none;font-weight:700;font-size:1.1rem;padding:15px 12px;border-radius:12px;margin:14px 0}
 .dir:active{background:#185a36}
@@ -755,7 +755,7 @@ ${JSON.stringify(jsonld, null, 2)}
 </head>
 <body>
 <main>
-  ${l.logo ? `<img class="logo" src="${esc(img(l.logo))}" alt="${esc(l.name)}">` : ""}
+  ${l.logo ? (() => { const s = size(l.logo); return `<img class="logo" src="${esc(img(l.logo))}" width="${s.width}" height="${s.height}" alt="${esc(l.name)} logo">`; })() : ""}
   <h1>${esc(l.name)}</h1>
   <p class="tag">${esc(l.tagline)}</p>
   ${dirBtn("top")}
