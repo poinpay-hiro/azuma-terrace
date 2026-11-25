@@ -27,7 +27,7 @@
       { "dayOfWeek": ["Monday", "Wednesday", "Thursday", "Friday"], "opens": "17:00", "closes": "01:00" },
       { "dayOfWeek": ["Saturday", "Sunday"], "opens": "16:00", "closes": "01:00" }
     ],
-    "orderNote": "Order from your phone by QR code at your table",
+    "orderNote": "Order by QR code or tablet at your table",
     "addressEn": "2-10-2-101 Bunka, Sumida-ku, Tokyo",
     "nearStation": "Near Omurai Station (Tobu Kameido Line)",
     "directionsUrl": "https://www.google.com/maps/dir/?api=1&destination=Uzu+Shokudo&destination_place_id=ChIJo7DLaJGJGGARmOR5xWC84b4",
