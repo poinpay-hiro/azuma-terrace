@@ -12,7 +12,16 @@ const APEX = "https://azuma-terrace.com";          // apex（定数・308確認�
 const BASE_PAGES = ["/", "/events", "/shops", "/medical", "/access", "/guidelines", "/sponsor", "/about"]; // 基本8ページ（/sponsor＝2026-10-10 追加）
 // イベントの参加店一覧ページ（data/campaigns.json の slug）も確認対象に含める。
 // パスはリポジトリ内のデータから作る（引数・環境変数からは受け取らない＝接続先固定の方針どおり）。
-const PAGES = [...BASE_PAGES, ...readCampaignPaths()];
+// 広告の飛び先ページ（data/landings.json の path・2026-11-25 ops id=41）も同じくデータから加える。
+const LANDING_PATHS = readLandingPaths();
+const PAGES = [...BASE_PAGES, ...readCampaignPaths(), ...LANDING_PATHS];
+function readLandingPaths() {
+  try {
+    const list = JSON.parse(fs.readFileSync(new URL("../data/landings.json", import.meta.url), "utf8"));
+    return list.map((l) => l.path).filter((s) => /^[a-z0-9-]+(\/[a-z0-9-]+)*$/.test(s)).map((s) => `/${s}`);
+  } catch { return []; }
+}
+const SITEMAP = "/sitemap.xml"; // 広告LPが載っていないことの確認用（定数）
 function readCampaignPaths() {
   try {
     const list = JSON.parse(fs.readFileSync(new URL("../data/campaigns.json", import.meta.url), "utf8"));
@@ -90,6 +99,25 @@ function jsonLdBlocks(html) {
     check("計測スクリプト 200配信", res.status === 200, `status=${res.status}`);
   } catch (e) {
     check("計測スクリプト 200配信", false, `ERR(${e.cause?.code || e.message})`);
+  }
+
+  // 広告の飛び先ページ: noindex があり、ほかのページからリンクされておらず、sitemap に載っていない（2026-11-25 ops id=41）
+  if (LANDING_PATHS.length) {
+    const problems = [];
+    let sitemap = null;
+    try {
+      const res = await fetch(ORIGIN + SITEMAP, { redirect: "follow" });
+      if (res.status === 200) sitemap = await res.text();
+    } catch (e) { problems.push(`sitemap 取得エラー(${e.cause?.code || e.message})`); }
+    for (const lp of LANDING_PATHS) {
+      const body = pages[lp]?.body || "";
+      if (!body.includes('<meta name="robots" content="noindex">')) problems.push(`${lp}: noindex 無し`);
+      const linked = PAGES.filter((p) => p !== lp && new RegExp(`href="[^"]*${lp.slice(1).replace(/[/-]/g, "\\$&")}`).test(pages[p]?.body || ""));
+      if (linked.length) problems.push(`${lp}: リンク元 ${linked.join(",")}`);
+      if (sitemap && sitemap.includes(lp)) problems.push(`${lp}: sitemap に掲載`);
+    }
+    check("広告LP 非掲載(noindex・リンク元なし・sitemap)", problems.length === 0,
+      problems.length ? problems.join(" / ") : `${LANDING_PATHS.join(",")}：noindex・リンク元なし・sitemap ${sitemap === null ? "無し" : "非掲載"}`);
   }
 
   // 引数の検索文字列（あれば）: いずれかのページに存在

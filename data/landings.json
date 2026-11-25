@@ -1,0 +1,37 @@
+[
+  {
+    "path": "en/uzu-shokudo",
+    "template": "restaurant-en",
+    "shopId": "uzu-shokudo",
+    "imageDir": "uzu-en",
+    "name": "Uzu Shokudo",
+    "tagline": "Steak bowl, sushi & karaage — a local izakaya near Omurai Station",
+    "description": "Uzu Shokudo — steak bowl, sushi and karaage at a local izakaya near Omurai Station (Tobu Kameido Line), Sumida, Tokyo. Hours, directions and phone.",
+    "logo": null,
+    "mainDishes": [
+      { "name": "Steak Bowl", "image": "steak-bowl.jpg" },
+      { "name": "Karaage", "note": "Japanese fried chicken", "image": "karaage.jpg" },
+      { "name": "Sushi", "image": "sushi.jpg" }
+    ],
+    "moreDishes": [
+      { "name": "Steak", "image": "steak.jpg" },
+      { "name": "Hamburg Steak", "image": "hamburg-steak.jpg" },
+      { "name": "Tori Paitan Ramen", "note": "creamy chicken broth ramen", "image": "tori-paitan-ramen.jpg" }
+    ],
+    "hours": [
+      { "days": "Mon, Wed–Fri", "time": "5:00 PM–1:00 AM" },
+      { "days": "Sat & Sun", "time": "4:00 PM–1:00 AM" },
+      { "days": "Tue", "time": "Closed" }
+    ],
+    "openingHoursSpecification": [
+      { "dayOfWeek": ["Monday", "Wednesday", "Thursday", "Friday"], "opens": "17:00", "closes": "01:00" },
+      { "dayOfWeek": ["Saturday", "Sunday"], "opens": "16:00", "closes": "01:00" }
+    ],
+    "orderNote": "Order from your phone by QR code at your table",
+    "addressEn": "2-10-2-101 Bunka, Sumida-ku, Tokyo",
+    "nearStation": "Near Omurai Station (Tobu Kameido Line)",
+    "directionsUrl": "https://www.google.com/maps/dir/?api=1&destination=Uzu+Shokudo&destination_place_id=ChIJo7DLaJGJGGARmOR5xWC84b4",
+    "exterior": { "image": "exterior.jpg", "caption": "Look for the white UZU curtain at the entrance." },
+    "events": { "directions": "uzu_directions_click", "phone": "uzu_phone_click" }
+  }
+]

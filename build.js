@@ -659,6 +659,135 @@ ${lineCta()}
   }, site);
 }
 
+// ---- 広告の飛び先ページ（data/landings.json・2026-11-25 ops id=41）----
+// サイト内のどこからもリンクしない・noindex・ナビ／フッター無しの単独ページ（英語）。
+// 店の電話は shops.json の shopId から組み立てる（手打ちで二重管理しない）。英語の住所は landings.json に持ち、
+// 番地が shops.json の住所と一致することを verify #25 で照合する。
+// ページがサブフォルダ（例: dist/en/）に出るため、参照は "/" から始まる絶対パスで書く。
+const landings = readJSON("landings.json").map((l) => {
+  const shop = shops.find((s) => s.id === l.shopId);
+  if (!shop) throw new Error(`landings.json（${l.path}）の shopId が shops.json にありません: ${l.shopId}`);
+  if (l.template !== "restaurant-en") throw new Error(`landings.json（${l.path}）の template が不明です: ${l.template}`);
+  if (!/^[a-z0-9-]+(\/[a-z0-9-]+)*$/.test(l.path)) throw new Error(`landings.json の path が不正です: ${l.path}`);
+  return { ...l, shop, page: `${l.path}.html` };
+});
+
+function pageRestaurantEn(l) {
+  const BASE = "https://www.azuma-terrace.com";
+  const img = (file) => `/assets/${l.imageDir}/${file}`;
+  const size = (file) => readImageSize(path.join(ASSETS, l.imageDir, file));
+  const tel = l.shop.tel;
+  const telIntl = tel ? C.tel81(tel) : null; // 例: +81-80-7600-0703
+  const telHref = telIntl ? `tel:${telIntl.replace(/-/g, "")}` : null;
+  const telText = telIntl ? telIntl.replace(/^\+81-/, "+81 ") : null; // 表示: +81 80-7600-0703
+  const figure = (d, cls) => {
+    const { width, height } = size(d.image);
+    return `<figure class="${cls}"><img src="${esc(img(d.image))}" width="${width}" height="${height}" alt="${esc(d.name)}${d.note ? ` (${esc(d.note)})` : ""}"${cls === "dish big" ? "" : ' loading="lazy"'}><figcaption><b>${esc(d.name)}</b>${d.note ? `<span>${esc(d.note)}</span>` : ""}</figcaption></figure>`;
+  };
+  const dirBtn = (pos) => `<a class="dir" href="${esc(l.directionsUrl)}" target="_blank" rel="noopener" data-ev="${esc(l.events.directions)}" data-pos="${pos}">Get directions on Google Maps</a>`;
+  const ex = l.exterior ? size(l.exterior.image) : null;
+  const canonical = `${BASE}/${l.path}`;
+  const title = `${l.name} — ${l.tagline.split(" — ")[0]} | Omurai, Tokyo`;
+  const ogImage = `${BASE}${img(l.mainDishes[0].image)}`;
+  const jsonld = {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    name: l.name,
+    alternateName: l.shop.name,
+    url: canonical,
+    image: ogImage,
+    address: { "@type": "PostalAddress", streetAddress: l.addressEn, addressCountry: "JP" },
+    ...(telIntl ? { telephone: telIntl } : {}),
+    openingHoursSpecification: l.openingHoursSpecification.map((o) => ({ "@type": "OpeningHoursSpecification", ...o })),
+    hasMap: l.directionsUrl,
+  };
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(l.description)}">
+<link rel="canonical" href="${esc(canonical)}">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(l.description)}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="${esc(canonical)}">
+<meta property="og:image" content="${esc(ogImage)}">
+<meta name="twitter:card" content="summary">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#faf7f2;color:#2a2622;font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:540px;margin:0 auto;padding:20px 16px 32px}
+h1{font-size:2rem;line-height:1.15;margin:4px 0 6px;letter-spacing:.01em}
+h2{font-size:1.15rem;margin:26px 0 10px}
+.logo{display:block;max-width:240px;height:auto;margin:0 0 8px}
+.tag{margin:0 0 14px;color:#5c544b}
+.dir{display:block;text-align:center;background:#1f6f43;color:#fff;text-decoration:none;font-weight:700;font-size:1.1rem;padding:15px 12px;border-radius:12px;margin:14px 0}
+.dir:active{background:#185a36}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+figure{margin:0}
+figure img{display:block;width:100%;height:auto;border-radius:10px;background:#eee6da}
+.dish img{aspect-ratio:1/1;object-fit:cover}
+.dish.big{grid-column:1/-1;max-width:500px}
+figcaption{font-size:.95rem;margin-top:5px;line-height:1.3}
+figcaption span{display:block;font-size:.82rem;color:#5c544b}
+.grid3 figcaption{font-size:.85rem}
+.hours{border-collapse:collapse;width:100%}
+.hours th,.hours td{text-align:left;padding:6px 0;border-bottom:1px solid #e4ddd2;vertical-align:top}
+.hours th{font-weight:600;width:42%}
+.qr{background:#fff;border:1px solid #e4ddd2;border-radius:10px;padding:10px 12px;margin:16px 0 0;font-weight:600}
+.find{display:flex;gap:14px;align-items:flex-start}
+.find figure{flex:0 0 42%;max-width:240px}
+.find figcaption{font-size:.82rem;color:#5c544b}
+.find p{margin:0 0 8px}
+.tel{font-weight:700;font-size:1.1rem;color:#1f6f43}
+</style>
+<script type="application/ld+json">
+${JSON.stringify(jsonld, null, 2)}
+</script>
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+<main>
+  ${l.logo ? `<img class="logo" src="${esc(img(l.logo))}" alt="${esc(l.name)}">` : ""}
+  <h1>${esc(l.name)}</h1>
+  <p class="tag">${esc(l.tagline)}</p>
+  ${dirBtn("top")}
+  <div class="grid">
+    ${l.mainDishes.map((d, i) => figure(d, i === 0 ? "dish big" : "dish")).join("\n    ")}
+  </div>
+  <h2>More on the menu</h2>
+  <div class="grid3">
+    ${l.moreDishes.map((d) => figure(d, "dish")).join("\n    ")}
+  </div>
+  <h2>Hours</h2>
+  <table class="hours">
+    ${l.hours.map((h) => `<tr><th>${esc(h.days)}</th><td>${esc(h.time)}</td></tr>`).join("\n    ")}
+  </table>
+  <p class="qr">${esc(l.orderNote)}</p>
+  <h2>Find us</h2>
+  <div class="find">
+    ${l.exterior ? `<figure><img src="${esc(img(l.exterior.image))}" width="${ex.width}" height="${ex.height}" loading="lazy" alt="Entrance of ${esc(l.name)} with white UZU curtains"><figcaption>${esc(l.exterior.caption)}</figcaption></figure>` : ""}
+    <div>
+      <p>${esc(l.addressEn)}</p>
+      <p>${esc(l.nearStation)}</p>
+      ${telHref ? `<p><a class="tel" href="${esc(telHref)}" data-ev="${esc(l.events.phone)}" data-pos="find">${esc(telText)}</a></p>` : ""}
+    </div>
+  </div>
+  ${dirBtn("bottom")}
+</main>
+<script>document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("[data-ev]");if(a)window.va("event",{name:a.getAttribute("data-ev"),data:{position:a.getAttribute("data-pos")}})});</script>
+</body>
+</html>
+`;
+}
+
 // ---- 実行 ----
 function build() {
   fs.rmSync(DIST, { recursive: true, force: true });
@@ -675,7 +804,9 @@ function build() {
     "about.html": pageAbout(),
   };
   for (const c of campaigns) pages[c.page] = pageCampaign(c);
+  for (const l of landings) pages[l.page] = pageRestaurantEn(l);
   for (const [name, html] of Object.entries(pages)) {
+    fs.mkdirSync(path.dirname(path.join(DIST, name)), { recursive: true });
     fs.writeFileSync(path.join(DIST, name), html, "utf8");
   }
 

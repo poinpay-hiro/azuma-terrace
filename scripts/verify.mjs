@@ -15,7 +15,10 @@ const BASE_PAGES = ["index", "events", "shops", "medical", "access", "guidelines
 // イベントの参加店一覧ページ（data/campaigns.json の slug ごとに1ページ・2026-10-09）も生成の期待値に含める
 let CAMPAIGNS = [];
 try { CAMPAIGNS = JSON.parse(fs.readFileSync(path.join(DATA, "campaigns.json"), "utf8")); } catch (e) { CAMPAIGNS = null; }
-const REQUIRED_PAGES = [...BASE_PAGES, ...(CAMPAIGNS || []).map((c) => c.slug)];
+// 広告の飛び先ページ（data/landings.json の path ごとに1ページ・サブフォルダ可・2026-11-25 ops id=41）も期待値に含める
+let LANDINGS = [];
+try { LANDINGS = JSON.parse(fs.readFileSync(path.join(DATA, "landings.json"), "utf8")); } catch (e) { LANDINGS = null; }
+const REQUIRED_PAGES = [...BASE_PAGES, ...(CAMPAIGNS || []).map((c) => c.slug), ...(LANDINGS || []).map((l) => l.path)];
 const IMG_EXT = /\.(jpe?g|png|svg|webp|gif|avif)$/i;
 const SIZE_WARN = 1024 * 1024; // 1MB
 // ビルド日（日本時間）。build.js のイベント状態判定と同じ式（UTC+9 の日付）。#11・#18 で使う。
@@ -37,6 +40,14 @@ function listFiles(dir, base = "") {
   }
   return out;
 }
+// ページ内の参照（href/src）を dist 内のパスに解決する。"/" 始まりはサイトの根から、それ以外はページの場所から。
+// 基本ページは dist 直下にあるので従来と同じ結果。サブフォルダのページ（例: en/uzu-shokudo）のために追加（2026-11-25）。
+function resolveRef(page, ref) {
+  const clean = ref.split("#")[0].split("?")[0];
+  if (!clean) return "";
+  const joined = clean.startsWith("/") ? clean.slice(1) : path.posix.join(path.posix.dirname(page), clean);
+  return path.posix.normalize(joined).replace(/^\.\//, "");
+}
 function readHtml(page) { return fs.readFileSync(path.join(DIST, page + ".html"), "utf8"); }
 function jsonLdBlocks(html) {
   const out = [];
@@ -47,7 +58,8 @@ function jsonLdBlocks(html) {
 // ============ 1. 全ページ存在（基本7ページ＋参加店一覧ページ）============
 {
   const missing = REQUIRED_PAGES.filter((p) => !fs.existsSync(path.join(DIST, p + ".html")));
-  check(`${REQUIRED_PAGES.length}ページ生成(基本${BASE_PAGES.length}＋参加店一覧${REQUIRED_PAGES.length - BASE_PAGES.length})`, missing.length === 0, missing.length ? `不足: ${missing.join(", ")}` : `${REQUIRED_PAGES.length}ページ存在`);
+  const nCamp = (CAMPAIGNS || []).length, nLand = (LANDINGS || []).length;
+  check(`${REQUIRED_PAGES.length}ページ生成(基本${BASE_PAGES.length}＋参加店一覧${nCamp}＋広告LP${nLand})`, missing.length === 0, missing.length ? `不足: ${missing.join(", ")}` : `${REQUIRED_PAGES.length}ページ存在`);
 }
 
 const distFiles = listFiles(DIST);
@@ -67,7 +79,7 @@ const VERCEL_INSIGHTS = "/_vercel/insights/script.js";
       .filter((u) => !/^(https?:|tel:|mailto:|#|data:)/.test(u))
       .filter((u) => u !== VERCEL_INSIGHTS); // Vercel配信パス（上記コメント参照）
     for (const r of refs) {
-      const clean = r.split("#")[0].split("?")[0];
+      const clean = resolveRef(p, r);
       if (!clean) continue;
       const ok = distFiles.has(clean) || distFiles.has(clean + ".html");
       if (!ok) broken.push(`${p}.html -> ${r}`);
@@ -164,7 +176,7 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
     const refs = [...html.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1])
       .filter((u) => !/^(https?:|data:)/.test(u) && IMG_EXT.test(u));
     for (const r of refs) {
-      const clean = r.split("#")[0].split("?")[0];
+      const clean = resolveRef(p, r);
       if (!distFiles.has(clean)) missing.push(`${p}.html -> ${r}`);
     }
   }
@@ -544,6 +556,50 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
   }
   check("参加店一覧の注意事項(notices)", problems.length === 0,
     problems.length ? problems.join(" / ") : n ? `${n}件の一覧で注意事項OK（空行なし・ページに枠あり）` : "該当なし（注意事項の記載なし）");
+}
+
+// ============ 25. 広告の飛び先ページ（data/landings.json）が隠れていて、店舗データと食い違っていない ============
+// Google 広告の飛び先（例: /en/uzu-shokudo）。広告に設定済みの URL なので、サイト内から見えないことと、
+// 住所・電話が店舗データ（shops.json＝正）と食い違わないことを機械で守る（2026-11-25・ops id=41）。
+//  - dist 内のほかのどの HTML からもリンクされていない（ナビ・トップ・店舗一覧・フッター等に紛れ込んだら FAIL）
+//  - sitemap.xml があれば、そこに載っていない（2026-11 時点で sitemap は無い）
+//  - noindex と lang="en" がある
+//  - 英語の住所に、shops.json の住所の番地（例: 2-10-2-101）が含まれる
+//  - 電話リンクが shops.json の番号（#17 の allowlist の対象）から組み立てた tel:+81… と一致する
+//  - 経路ボタンが上部・下部の2か所にあり、計測イベント名が付いている
+{
+  const problems = [];
+  let shops = [];
+  try { shops = JSON.parse(fs.readFileSync(path.join(DATA, "shops.json"), "utf8")); } catch (e) {}
+  const allHtml = [...distFiles].filter((f) => f.endsWith(".html"));
+  const sitemap = distFiles.has("sitemap.xml") ? fs.readFileSync(path.join(DIST, "sitemap.xml"), "utf8") : null;
+  for (const l of LANDINGS || []) {
+    const self = `${l.path}.html`;
+    if (!distFiles.has(self)) { problems.push(`${l.path}: ページが無い`); continue; }
+    const needle = new RegExp(`(?:href|src)="[^"]*${l.path.replace(/[/-]/g, "\\$&")}(?:\\.html)?(?:[?#"])`);
+    const linkedFrom = allHtml.filter((f) => f !== self && needle.test(fs.readFileSync(path.join(DIST, f), "utf8")));
+    if (linkedFrom.length) problems.push(`${l.path}: ほかのページからリンクされている（${linkedFrom.join(",")}）`);
+    if (sitemap && sitemap.includes(l.path)) problems.push(`${l.path}: sitemap.xml に載っている`);
+    const html = readHtml(l.path);
+    if (!/<meta name="robots" content="noindex">/.test(html)) problems.push(`${l.path}: noindex が無い`);
+    if (!/<html lang="en">/.test(html)) problems.push(`${l.path}: lang="en" でない`);
+    const shop = shops.find((s) => s.id === l.shopId);
+    if (!shop) { problems.push(`${l.path}: shopId ${l.shopId} が shops.json に無い`); continue; }
+    const banchi = (String(shop.address).match(/\d+(?:-\d+)+/) || [])[0];
+    if (!banchi || !String(l.addressEn || "").includes(banchi)) problems.push(`${l.path}: 英語の住所に shops.json の番地が無い`);
+    if (!html.includes(String(l.addressEn))) problems.push(`${l.path}: 英語の住所がページに無い`);
+    if (shop.tel) {
+      const expected = "tel:+81" + shop.tel.replace(/[^\d]/g, "").replace(/^0/, "");
+      const telLinks = [...html.matchAll(/href="(tel:[^"]+)"/g)].map((m) => m[1]);
+      if (!telLinks.length || telLinks.some((t) => t !== expected)) problems.push(`${l.path}: 電話リンクが shops.json の番号と一致しない`);
+    }
+    const ev = (l.events && l.events.directions) || "";
+    const btn = (pos) => new RegExp(`<a class="dir" href="https://www\\.google\\.com/maps/[^"]+"[^>]*data-ev="${ev}" data-pos="${pos}"`).test(html);
+    if (!ev || !btn("top") || !btn("bottom")) problems.push(`${l.path}: 経路ボタン（上部・下部・計測イベント名つき）がそろっていない`);
+  }
+  const n = (LANDINGS || []).length;
+  check("広告の飛び先ページ(隠れ・住所/電話の整合)", problems.length === 0,
+    problems.length ? problems.join(" / ") : n ? `${n}ページ（リンク元なし・sitemap ${sitemap ? "非掲載" : "無し"}・noindex・番地/電話が店舗データと一致・経路ボタン上下）` : "該当なし（landings.json の記載なし）");
 }
 
 // ============ 出力 ============
