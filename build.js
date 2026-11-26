@@ -669,6 +669,8 @@ const landings = readJSON("landings.json").map((l) => {
   if (!shop) throw new Error(`landings.json（${l.path}）の shopId が shops.json にありません: ${l.shopId}`);
   if (l.template !== "restaurant-en") throw new Error(`landings.json（${l.path}）の template が不明です: ${l.template}`);
   if (!/^[a-z0-9-]+(\/[a-z0-9-]+)*$/.test(l.path)) throw new Error(`landings.json の path が不正です: ${l.path}`);
+  // 日本語の案内リンク（任意・2026-11-26 ops id=48）: 外部の https URL だけ受け付ける
+  if (l.jaLink && (!l.jaLink.label || !/^https:\/\//.test(l.jaLink.url || ""))) throw new Error(`landings.json（${l.path}）の jaLink は label と https の url が必要です`);
   return { ...l, shop, page: `${l.path}.html` };
 });
 
@@ -725,6 +727,7 @@ main{max-width:540px;margin:0 auto;padding:20px 16px 32px}
 h1{font-size:2rem;line-height:1.15;margin:4px 0 6px;letter-spacing:.01em}
 h2{font-size:1.15rem;margin:26px 0 10px}
 .logo{display:block;width:180px;max-width:100%;height:auto;margin:0 0 10px}
+.lang{float:right;display:inline-block;min-width:44px;min-height:44px;padding:10px 12px;margin:-10px -12px 0 8px;font-size:.9rem;line-height:24px;text-align:center;color:#5c544b}
 .tag{margin:0 0 14px;color:#5c544b}
 .dir{display:block;text-align:center;background:#1f6f43;color:#fff;text-decoration:none;font-weight:700;font-size:1.1rem;padding:15px 12px;border-radius:12px;margin:14px 0}
 .dir:active{background:#185a36}
@@ -755,7 +758,7 @@ ${JSON.stringify(jsonld, null, 2)}
 </head>
 <body>
 <main>
-  ${l.logo ? (() => { const s = size(l.logo); return `<img class="logo" src="${esc(img(l.logo))}" width="${s.width}" height="${s.height}" alt="${esc(l.name)} logo">`; })() : ""}
+  ${l.jaLink ? `<a class="lang" href="${esc(l.jaLink.url)}" lang="ja" hreflang="ja"${l.events.jaLink ? ` data-ev="${esc(l.events.jaLink)}" data-pos="top"` : ""}>${esc(l.jaLink.label)}</a>\n  ` : ""}${l.logo ? (() => { const s = size(l.logo); return `<img class="logo" src="${esc(img(l.logo))}" width="${s.width}" height="${s.height}" alt="${esc(l.name)} logo">`; })() : ""}
   <h1>${esc(l.name)}</h1>
   <p class="tag">${esc(l.tagline)}</p>
   ${dirBtn("top")}

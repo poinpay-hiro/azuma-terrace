@@ -569,6 +569,7 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
 //  - 経路ボタンが上部・下部の2か所にあり、計測イベント名が付いている
 //  - ロゴを設定したら、H1 の上に画像と alt「<店名> logo」があり、英語の店名の H1 も残っている（2026-11-25 ops id=42）
 //  - 電車での行き方（trainAccess）を設定したら、最寄り駅の行の直後（同じ段落の次の行）に出ている（2026-11-26 ops id=45）
+//  - 日本語の案内リンク（jaLink）を設定したら、H1 より上に1本だけあり、飛び先・表示文字・lang="ja"・計測イベント名が設定どおり（2026-11-26 ops id=48）
 {
   const problems = [];
   let shops = [];
@@ -594,6 +595,16 @@ const gitAll = gitTracked ? [...new Set([...gitTracked, ...gitStaged])] : null;
     if ("trainAccess" in l) {
       if (!String(l.trainAccess || "").trim()) problems.push(`${l.path}: trainAccess が空`);
       else if (!html.includes(`<p>${l.nearStation}<br>${l.trainAccess}</p>`)) problems.push(`${l.path}: 電車での行き方が最寄り駅の行の直後に無い`);
+    }
+    // 日本語の案内リンク（jaLink を設定した場合・2026-11-26 ops id=48）
+    if (l.jaLink) {
+      const langLinks = [...html.matchAll(/<a class="lang"[^>]*>[^<]*<\/a>/g)].map((m) => m[0]);
+      const ev = l.events && l.events.jaLink;
+      const want = `<a class="lang" href="${l.jaLink.url}" lang="ja" hreflang="ja"${ev ? ` data-ev="${ev}" data-pos="top"` : ""}>${l.jaLink.label}</a>`;
+      if (!/^https:\/\//.test(l.jaLink.url || "")) problems.push(`${l.path}: 日本語リンクの飛び先が https でない`);
+      if (langLinks.length !== 1) problems.push(`${l.path}: 日本語リンクが ${langLinks.length} 本（1本であること）`);
+      else if (langLinks[0] !== want) problems.push(`${l.path}: 日本語リンクの飛び先・表示・lang・計測が設定と一致しない`);
+      else if (html.indexOf(want) > html.indexOf(`<h1>`)) problems.push(`${l.path}: 日本語リンクが H1 より上に無い`);
     }
     if (shop.tel) {
       const expected = "tel:+81" + shop.tel.replace(/[^\d]/g, "").replace(/^0/, "");

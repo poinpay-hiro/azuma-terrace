@@ -8,6 +8,7 @@
     "tagline": "Steak bowl, sushi & karaage — a local izakaya near Omurai Station",
     "description": "Uzu Shokudo — steak bowl, sushi and karaage at a local izakaya near Omurai Station (Tobu Kameido Line), Sumida, Tokyo. Hours, directions and phone.",
     "logo": "logo.png",
+    "jaLink": { "label": "日本語", "url": "https://www.uzu-group.com/" },
     "mainDishes": [
       { "name": "Steak Bowl", "image": "steak-bowl.jpg" },
       { "name": "Karaage", "note": "Japanese fried chicken", "image": "karaage.jpg" },
@@ -33,6 +34,6 @@
     "trainAccess": "1 stop from Hikifune, 3 stops from Kameido",
     "directionsUrl": "https://www.google.com/maps/dir/?api=1&destination=Uzu+Shokudo&destination_place_id=ChIJo7DLaJGJGGARmOR5xWC84b4",
     "exterior": { "image": "exterior.jpg", "caption": "Look for the white UZU curtain at the entrance." },
-    "events": { "directions": "uzu_directions_click", "phone": "uzu_phone_click" }
+    "events": { "directions": "uzu_directions_click", "phone": "uzu_phone_click", "jaLink": "uzu_ja_link_click" }
   }
 ]
